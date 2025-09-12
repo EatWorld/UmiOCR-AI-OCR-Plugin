@@ -32,7 +32,8 @@ PROVIDER_CONFIGS = {
     "doubao": {
         "api_base": "https://ark.cn-beijing.volces.com/api/v3",
         "model": "",  # 用户自定义
-
+    },
+    
     "Z.AI": {
         "api_base": "https://open.bigmodel.cn/api/paas/v4",
         "model": "",  # 用户自定义
