@@ -324,7 +324,7 @@ class ZhipuProvider(BaseProvider):
         return "https://open.bigmodel.cn/api/paas/v4"
 
     def get_default_model(self):
-        return "glm-4.5v"
+        return ""
 
     def build_headers(self):
         return {
