@@ -177,7 +177,6 @@ class SiliconFlowProvider(BaseProvider):
         except Exception as e:
             raise Exception(f"解析硅基流动响应失败: {str(e)}")
 
-# 阿里云百炼模型（千问）Provider
 # 豆包 Provider
 class DoubaoProvider(BaseProvider):
     """豆包服务提供商"""
@@ -316,6 +315,105 @@ class OpenRouterProvider(BaseProvider):
                 return None
         except Exception as e:
             raise Exception(f"解析OpenRouter响应失败: {str(e)}")
+            
+# 智谱AI Provider
+class ZhipuProvider(BaseProvider):
+    """智谱AI服务提供商"""
+
+    def get_default_api_base(self):
+        return "https://open.bigmodel.cn/api/paas/v4"
+
+    def get_default_model(self):
+        return "glm-4.5v"
+
+    def build_headers(self):
+        return {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {self.api_key}"
+        }
+
+    def build_payload(self, image_base64, prompt):
+        return {
+            "model": self.model or self.get_default_model(),
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/jpeg;base64,{image_base64}"
+                            }
+                        },
+                        {"type": "text", "text": prompt}
+                    ]
+                }
+            ],
+            "thinking": {
+                "type": "enabled"
+            }
+        }
+
+    def parse_response(self, response_text):
+        try:
+            data = json.loads(response_text)
+            if "choices" in data and len(data["choices"]) > 0:
+                content = data["choices"][0]["message"]["content"]
+                return content
+            else:
+                return None
+        except Exception as e:
+            raise Exception(f"解析智谱AI响应失败: {str(e)}")
+
+
+# 阿里云百炼 Provider
+class BailianProvider(BaseProvider):
+    """阿里云百炼大模型平台服务提供商"""
+
+    def get_default_api_base(self):
+        return "https://dashscope.aliyuncs.com/compatible-mode/v1"
+
+    def get_default_model(self):
+        return ""  # 百炼模型需用户指定，如"qwen-vl-ocr-latest"
+
+    def build_headers(self):
+        return {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {self.api_key}"
+        }
+
+    def build_payload(self, image_base64, prompt):
+        return {
+            "model": self.model or self.get_default_model(),
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/jpeg;base64,{image_base64}",
+                                # 百炼特有参数：图像像素调整阈值
+                                "min_pixels": 28 * 28 * 4,  # 最小像素阈值
+                                "max_pixels": 28 * 28 * 8192  # 最大像素阈值
+                            }
+                        },
+                        {"type": "text", "text": prompt}
+                    ]
+                }
+            ]
+        }
+
+    def parse_response(self, response_text):
+        try:
+            data = json.loads(response_text)
+            if "choices" in data and len(data["choices"]) > 0:
+                content = data["choices"][0]["message"]["content"]
+                return content
+            else:
+                return None
+        except Exception as e:
+            raise Exception(f"解析百炼响应失败: {str(e)}")
 
 # Provider工厂
 class ProviderFactory:
