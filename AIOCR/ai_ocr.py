@@ -426,6 +426,8 @@ class ProviderFactory:
             "openrouter": OpenRouterProvider,
             "siliconflow": SiliconFlowProvider,
             "doubao": DoubaoProvider,
+            "Z.AI": ZhipuProvider,  # 新增智谱AI提供商
+            "Qwen": BailianProvider  # 新增百炼提供商
         }
         
         if provider_name not in providers:
