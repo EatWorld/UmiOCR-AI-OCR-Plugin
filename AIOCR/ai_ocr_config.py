@@ -33,6 +33,16 @@ PROVIDER_CONFIGS = {
         "api_base": "https://ark.cn-beijing.volces.com/api/v3",
         "model": "",  # 用户自定义
     },
+    
+    "Z.AI": {
+        "api_base": "https://open.bigmodel.cn/api/paas/v4",
+        "model": "",  # 用户自定义
+    },
+
+    "Qwen": {
+        "api_base": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+        "model": "",  # 用户自定义
+    },
 }
 
 # 获取服务商默认配置的辅助函数
@@ -73,8 +83,9 @@ _provider_configs = {
     "xai": {"model": "", "api_key": ""},
     "openrouter": {"model": "", "api_key": ""},
     "siliconflow": {"model": "", "api_key": ""},
-
     "doubao": {"model": "", "api_key": ""},
+    "Qwen": {"model": "", "api_key": ""},
+    "Z.AI": {"model": "", "api_key": ""},
 }
 
 def switch_provider_config(new_provider, old_provider, configs):
@@ -109,8 +120,10 @@ globalOptions = {
             ["xai", "xAI Grok"],
             ["openrouter", "OpenRouter (Claude)"],
             ["siliconflow", "硅基流动 (SiliconFlow)"],
-
             ["doubao", "豆包 (Doubao)"],
+            ["Qwen", "千问 (Qwen)"],
+            ["Z.AI", "智谱 (Z.AI)"],
+        ],
         ],
         "toolTip": tr("选择要使用的AI服务提供商。切换时会自动保存和恢复对应的配置。"),
     },
