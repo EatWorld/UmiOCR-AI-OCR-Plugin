@@ -1,1 +1,48 @@
-
+{
+  "name": "umi-ocr-mcp",
+  "version": "0.1.0",
+  "author": "Kaz",
+  "description": "一个用于调用本地 Umi-OCR v2 HTTP 服务的 MCP，实现在线调用本地OCR功能。",
+  "inputs": [
+    {
+      "name": "image_base64",
+      "type": "string",
+      "description": "必需。待识别图片的 Base64 编码字符串。",
+      "required": true,
+      "example": "iVBORw0KGgoAAAANSUhEUgAA..."
+    },
+    {
+      "name": "lang",
+      "type": "string",
+      "description": "识别语言。例如 'zh-Hans' (简体中文), 'en' (英文), 'japan' (日文)。更多语言请参考Umi-OCR支持列表。",
+      "required": false,
+      "example": "zh-Hans"
+    },
+    {
+      "name": "layout",
+      "type": "string",
+      "description": "排版方式。可选值: 'auto'(自动), 'Simple'(单栏), 'MergeLine'(多栏-合并), 'Block'(多栏-分块)。",
+      "required": false,
+      "example": "auto"
+    },
+    {
+      "name": "server_address",
+      "type": "string",
+      "description": "Umi-OCR HTTP 服务的地址。",
+      "required": false,
+      "example": "http://127.0.0.1:1502"
+    }
+  ],
+  "outputs": [
+    {
+      "name": "text",
+      "type": "string",
+      "description": "从识别结果中提取并拼接的纯文本内容。"
+    },
+    {
+      "name": "result",
+      "type": "json",
+      "description": "Umi-OCR 返回的完整 JSON 原始结果，包含文字、坐标、置信度等信息。"
+    }
+  ]
+}
