@@ -1,0 +1,1 @@
+from .mcp_main import UmiOcrMcp
