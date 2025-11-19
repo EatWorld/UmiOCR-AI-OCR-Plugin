@@ -26,24 +26,24 @@
 ### 🌐 云端服务商
 | 服务商 | 建议模型 | 特点 |
 |--------|----------|------|
-| **硅基流动 (SiliconFlow)** | Qwen/Qwen2.5-VL-32B-Instruct | 开源模型多，价格低，速度快，准确率超高，**最推荐** |
-| **阿里云百炼 (Alibaba)** | qwen-vl-plus-2025-08-15 | 专业OCR模型，中文识别优秀 |
+| **硅基流动 (SiliconFlow)** | Qwen/Qwen3-VL-235B-A22B-Instruct（推荐使用）或Qwen/Qwen2.5-VL-72B-Instruct | 开源模型多，价格低，速度快，准确率超高，**最推荐** |
+| **阿里云百炼 (Alibaba)** | Qwen/Qwen3-VL-235B-A22B-Instruct | 顶尖OCR模型，中文识别优秀，**最推荐**  |
 | **智谱AI (ZhipuAI)** | glm-4.5v | 国产大模型，多模态能力强 |
-| **豆包(Doubao)** | Doubao-1.5-vision-pro-32k | 中文优化效果好，性价比高 |
+| **豆包(Doubao)** | doubao-seed-1-6-vision-250815 | 中文优化效果好，性价比高 |
 | **OpenAI** | gpt-5-mini | 高精度，多语言支持 |
 | **Google Gemini** | gemini-2.5-flash | 速度快，成本低 |
 | **xAI Grok** | grok-4 | 创新模型，独特优势 |
-| **OpenRouter** | anthropic/claude-3.5-sonnet | 统一接口，模型丰富 |
-| **Groq** | llama-3.3-70b-versatile | 高性能推理，速度极快 |
-| **魔搭 (ModelScope)** | Qwen/Qwen-VL-Plus | 阿里达摩院开源平台，模型丰富 |
-| **无问芯穹 (Infinigence)** | kimi-k2-instruct | 月之暗面AI平台，长文本处理强 |
-| **Mistral AI** | pixtral-12b-2409 | 欧洲AI公司，视觉模型优秀 |
-| **浦源书生 (Intern)** | internvl3.5-241b-a28b | 学术界AI平台，多模态能力强 |
+| **OpenRouter** | qwen/qwen2.5-vl-72b-instruct:free | 统一接口，模型丰富 |
+| **Groq** | meta-llama/llama-4-maverick-17b-128e-instruct | 高性能推理，速度极快 |
+| **魔搭 (ModelScope)** | Qwen/Qwen3-VL-235B-A22B-Instruct | 阿里达摩院开源平台，模型丰富，免费使用|
+| **无问芯穹 (Infinigence)** | Qwen/Qwen3-VL-235B-A22B-Instruct | 顶尖OCR模型，中文识别优秀，免费使用|
+| **Mistral AI** | mistral-ocr-latest | 欧洲AI公司，视觉模型优秀，免费使用|
+| **浦源书生 (Intern)** | internvl3.5-241b-a28b | 学术界AI平台，多模态能力强，免费使用|
 
 ### 🏠 本地服务商（离线识别）
 | 服务商 | 建议模型 | 特点 |
 |--------|----------|------|
-| **Ollama** | llava, llava:7b, bakllava | 🔒 **完全离线**，隐私保护，免费使用，**支持自定义地址** |
+| **Ollama** | qwen2.5vl:7b, qwen3vl:8b | 🔒 **完全离线**，隐私保护，免费使用，**支持自定义地址** |
 | **LM Studio** | llava, llava-1.5-7b-hf | 🔒 **完全离线**，图形界面友好，OpenAI兼容，**支持自定义地址** |
 
 > 💡 **自定义地址功能**：Ollama 和 LM Studio 支持自定义 API 地址，您可以：

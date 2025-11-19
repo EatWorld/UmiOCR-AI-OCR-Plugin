@@ -1193,6 +1193,19 @@ class Api:
             self.provider = ProviderFactory.create_provider(
                 provider_name, api_key, api_base if api_base else None, model, timeout, proxy_url
             )
+            if provider_name == "groq":
+                allowed_models = {
+                    "meta-llama/llama-4-scout-17b-16e-instruct",
+                    "meta-llama/llama-4-maverick-17b-128e-instruct",
+                }
+                if model not in allowed_models:
+                    return "[Error] groq 的模型必须为视觉模型: meta-llama/llama-4-scout-17b-16e-instruct 或 meta-llama/llama-4-maverick-17b-128e-instruct"
+            if provider_name == "mistral":
+                try:
+                    self.provider.parse_response = self._parse_mistral_response
+                    self._use_mistral_ocr = True
+                except Exception:
+                    self._use_mistral_ocr = False
             
             # 创建HTTP客户端
             self.http_client = HTTPClient(timeout, proxy_url)
@@ -1825,26 +1838,85 @@ class Api:
         elif provider_name == "lmstudio":
             url = f"{api_base}/chat/completions"
         elif provider_name == "mistral":
-            url = f"{api_base}/chat/completions"  # Mistral OCR专用端点
+            try:
+                if getattr(self, "_use_mistral_ocr", False):
+                    url = f"{api_base}/ocr"
+                else:
+                    url = f"{api_base}/chat/completions"
+            except Exception:
+                url = f"{api_base}/chat/completions"
         else:
             url = f"{api_base}/chat/completions"
         
         # 构建请求头和载荷
         headers = self.provider.build_headers()
         payload = self.provider.build_payload(image_base64, prompt)
+        try:
+            if provider_name == "mistral" and getattr(self, "_use_mistral_ocr", False):
+                model_name = self.provider.model or self.provider.get_default_model()
+                payload = self._build_mistral_ocr_payload(image_base64, prompt, model_name)
+        except Exception:
+            pass
         
-        # 检查是否是 MinerU 的错误情况
-        if isinstance(payload, dict) and payload.get("_mineru_error"):
-            # MinerU 不支持直接图片 OCR，返回错误信息
-            raise Exception(payload.get("error_message", "MinerU 不支持此操作"))
-        else:
-            # 所有服务商使用标准 JSON 请求
-            response = self.http_client.post(url, headers, json.dumps(payload))
+        response = self.http_client.post(url, headers, json.dumps(payload))
         
         if response['status_code'] != 200:
             raise Exception(f"API请求失败 (状态码: {response['status_code']}): {response['text']}")
         
         return response['text']
+
+    def _parse_mistral_response(self, response_text):
+        if not response_text or not response_text.strip():
+            raise Exception("解析Mistral响应失败: 服务器返回了空响应。")
+        try:
+            data = json.loads(response_text)
+            if isinstance(data, dict):
+                if "error" in data:
+                    msg = data["error"].get("message", str(data["error"]))
+                    raise Exception(f"API返回错误: {msg}")
+                if isinstance(data.get("pages"), list):
+                    parts = []
+                    for p in data["pages"]:
+                        if isinstance(p, dict):
+                            md = p.get("markdown")
+                            if isinstance(md, str) and md.strip():
+                                parts.append(md.strip())
+                    if parts:
+                        return "\n\n".join(parts)
+                if isinstance(data.get("markdown"), str):
+                    return data["markdown"]
+                if isinstance(data.get("result"), dict):
+                    md = data["result"].get("markdown")
+                    if isinstance(md, str):
+                        return md
+                if isinstance(data.get("content"), str):
+                    return data["content"]
+            return response_text
+        except Exception as e:
+            raise Exception(f"解析Mistral响应失败: {str(e)}")
+
+    def _build_mistral_ocr_payload(self, image_base64, prompt, model_name):
+        mime = "image/jpeg"
+        try:
+            b = base64.b64decode(image_base64, validate=False)
+            if b[:3] == b"\xFF\xD8\xFF":
+                mime = "image/jpeg"
+            elif b[:8] == b"\x89PNG\r\n\x1a\n":
+                mime = "image/png"
+            elif b[:6] in (b"GIF87a", b"GIF89a"):
+                mime = "image/gif"
+            elif b[:4] == b"RIFF" and b[8:12] == b"WEBP":
+                mime = "image/webp"
+        except Exception:
+            pass
+        return {
+            "model": model_name,
+            "document": {
+                "type": "image_url",
+                "image_url": f"data:{mime};base64,{image_base64}"
+            },
+            "include_image_base64": True
+        }
     
     def _convert_to_umi_format(self, content, config):
         """转换为Umi格式"""
