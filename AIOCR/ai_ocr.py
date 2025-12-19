@@ -2065,7 +2065,9 @@ class Api:
                         if isinstance(p, dict):
                             md = p.get("markdown")
                             if isinstance(md, str) and md.strip():
-                              return "\n\n".join(parts)
+                                parts.append(md.strip())
+                            if parts:
+                                return "\n\n".join(parts)
                 if isinstance(data.get("markdown"), str):
                     return data["markdown"]
                 if isinstance(data.get("result"), dict):
@@ -2404,4 +2406,5 @@ class Api:
     def _create_error_result(self, error_msg):
         """创建错误结果"""
         return {"code": 102, "data": f"[Error] {error_msg}"}
+
 
