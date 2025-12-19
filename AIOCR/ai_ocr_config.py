@@ -380,7 +380,7 @@ globalOptions = {
         "title": tr("PaddleOCR-VL API URL"),
         "default": "",
         "type": "text",
-        "toolTip": tr("请输入PaddleOCR-VL的完整API URL，如 /layout-parsing"),
+        "toolTip": tr("请输入PaddleOCR-VL的完整API URL"),
     },
 
     # 使用 z_ 前缀确保高级设置排在最后
@@ -505,3 +505,4 @@ localOptions = {
         "toolTip": tr("对检测框四周增加少量像素，避免裁剪过紧影响识别。"),
     },
 }
+
