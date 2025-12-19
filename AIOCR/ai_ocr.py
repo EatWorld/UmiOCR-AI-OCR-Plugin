@@ -855,6 +855,181 @@ class InternProvider(BaseProvider):
             raise Exception(f"解析书生AI响应失败: {str(e)}")
 
 
+# PaddleOCR Provider (在线)
+class PaddleProvider(BaseProvider):
+    """PaddleOCR在线服务提供商"""
+    
+    def get_default_api_base(self):
+        return "" 
+
+    def get_default_model(self):
+        return "" 
+
+    def build_headers(self):
+        return {
+            "Authorization": f"token {self.api_key}",
+            "Content-Type": "application/json"
+        }
+        
+    def build_payload(self, image_base64, prompt):
+        # 构造 payload
+        required_payload = {
+            "file": image_base64,
+            "fileType": 1, # 1 for image
+        }
+        
+        optional_payload = {
+            "useDocOrientationClassify": False,
+            "useDocUnwarping": False,
+            "useTextlineOrientation": False,
+        }
+        
+        payload = {**required_payload, **optional_payload}
+        return payload
+        
+    def parse_response(self, response_text):
+        try:
+            data = json.loads(response_text)
+            
+            # 检查错误码
+            if data.get("errorCode") != 0:
+                raise Exception(f"PaddleOCR API错误: {data.get('errorMsg')}")
+                
+            result = data.get("result", {})
+            if not result:
+                 return f"API返回成功但result为空。原始响应: {response_text[:500]}"
+
+            ocr_results = result.get("ocrResults", [])
+            if not ocr_results:
+                 return f"API返回成功但ocrResults为空。原始响应: {response_text[:500]}"
+            
+            all_text = []
+            for res in ocr_results:
+                pruned = res.get("prunedResult", {})
+                texts = self._extract_texts_recursive(pruned)
+                all_text.extend(texts)
+            
+            if not all_text:
+                return f"提取文本为空。请截图反馈此信息。原始响应: {response_text[:1000]}"
+                
+            return "\n".join(all_text)
+            
+        except Exception as e:
+            raise Exception(f"解析PaddleOCR响应失败: {str(e)}")
+
+    def _extract_texts_recursive(self, data):
+        texts = []
+        if isinstance(data, dict):
+            # 尝试常见的文本字段名(字符串类型)
+            for key in ["text", "rec_text", "transcription", "words"]:
+                if key in data and isinstance(data[key], str):
+                    texts.append(data[key])
+            
+            # 尝试列表类型的文本字段 (如 rec_texts)
+            if "rec_texts" in data and isinstance(data["rec_texts"], list):
+                for item in data["rec_texts"]:
+                    if isinstance(item, str):
+                        texts.append(item)
+            
+            for key, value in data.items():
+                texts.extend(self._extract_texts_recursive(value))
+        elif isinstance(data, list):
+            for item in data:
+                texts.extend(self._extract_texts_recursive(item))
+        return texts
+
+
+class PaddleVLProvider(BaseProvider):
+    def get_default_api_base(self):
+        return ""
+
+    def get_default_model(self):
+        return ""
+
+    def build_headers(self):
+        return {
+            "Authorization": f"token {self.api_key}",
+            "Content-Type": "application/json"
+        }
+
+    def build_payload(self, image_base64, prompt):
+        required_payload = {
+            "file": image_base64,
+            "fileType": 1,
+        }
+        optional_payload = {
+            "useDocOrientationClassify": False,
+            "useDocUnwarping": False,
+            "useChartRecognition": False,
+        }
+        payload = {**required_payload, **optional_payload}
+        return payload
+
+    def parse_response(self, response_text):
+        try:
+            data = json.loads(response_text)
+            if data.get("errorCode") != 0:
+                raise Exception(data.get("errorMsg") or "API错误")
+            result = data.get("result", {})
+            pages = result.get("layoutParsingResults", [])
+            if not pages:
+                return ""
+            parts = []
+            for p in pages:
+                md = p.get("markdown", {})
+                txt = md.get("text") if isinstance(md, dict) else None
+                if isinstance(txt, str) and txt.strip():
+                    parts.append(txt.strip())
+            return "\n\n".join(parts) if parts else ""
+        except Exception as e:
+            raise Exception(f"解析PaddleOCR-VL响应失败: {str(e)}")
+# PaddleOCR-VL Provider (在线)
+class PaddleVLProvider(BaseProvider):
+    def get_default_api_base(self):
+        return ""
+
+    def get_default_model(self):
+        return ""
+
+    def build_headers(self):
+        return {
+            "Authorization": f"token {self.api_key}",
+            "Content-Type": "application/json"
+        }
+
+    def build_payload(self, image_base64, prompt):
+        required_payload = {
+            "file": image_base64,
+            "fileType": 1,
+        }
+        optional_payload = {
+            "useDocOrientationClassify": False,
+            "useDocUnwarping": False,
+            "useChartRecognition": False,
+        }
+        payload = {**required_payload, **optional_payload}
+        return payload
+
+    def parse_response(self, response_text):
+        try:
+            data = json.loads(response_text)
+            if data.get("errorCode") != 0:
+                raise Exception(data.get("errorMsg") or "API错误")
+            result = data.get("result", {})
+            pages = result.get("layoutParsingResults", [])
+            if not pages:
+                return ""
+            parts = []
+            for p in pages:
+                md = p.get("markdown", {})
+                txt = md.get("text") if isinstance(md, dict) else None
+                if isinstance(txt, str) and txt.strip():
+                    parts.append(txt.strip())
+            return "\n\n".join(parts) if parts else ""
+        except Exception as e:
+            raise Exception(f"解析PaddleOCR-VL响应失败: {str(e)}")
+
+
 # Provider工厂
 class ProviderFactory:
     @staticmethod
@@ -875,6 +1050,8 @@ class ProviderFactory:
             "mistral": MistralProvider,
             "modelscope": ModelScopeProvider,  # 新增：魔搭 Provider
             "intern": InternProvider,  # 新增：书生AI Provider
+            "paddle": PaddleProvider,  # 新增：PaddleOCR Provider
+            "paddle_vl": PaddleVLProvider,  # 新增：PaddleOCR-VL Provider
 
         }
         
@@ -1845,6 +2022,14 @@ class Api:
                     url = f"{api_base}/chat/completions"
             except Exception:
                 url = f"{api_base}/chat/completions"
+        elif provider_name == "paddle":
+            url = self.provider.model
+            if isinstance(url, str) and url.startswith("/") and api_base:
+                url = f"{api_base.rstrip('/')}" + url
+        elif provider_name == "paddle_vl":
+            url = self.provider.model
+            if isinstance(url, str) and url.startswith("/") and api_base:
+                url = f"{api_base.rstrip('/')}" + url
         else:
             url = f"{api_base}/chat/completions"
         
@@ -1880,9 +2065,7 @@ class Api:
                         if isinstance(p, dict):
                             md = p.get("markdown")
                             if isinstance(md, str) and md.strip():
-                                parts.append(md.strip())
-                    if parts:
-                        return "\n\n".join(parts)
+                              return "\n\n".join(parts)
                 if isinstance(data.get("markdown"), str):
                     return data["markdown"]
                 if isinstance(data.get("result"), dict):
