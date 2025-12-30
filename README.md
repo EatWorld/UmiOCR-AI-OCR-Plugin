@@ -2,7 +2,7 @@
 
 ## 🚀 项目简介
 
-本插件为 **Umi-OCR** 提供 **13个主流AI服务商** 的OCR功能，支持云端和本地AI服务的视觉识别API。作为离线OCR的强力补充，为用户提供更高精度、更广泛语言支持的智能文字识别服务。
+本插件为 **Umi-OCR** 提供 **14个主流AI服务商** 的OCR功能，支持云端和本地AI服务的视觉识别API。作为离线OCR的强力补充，为用户提供更高精度、更广泛语言支持的智能文字识别服务。
 
 ## 📋 关于 Umi-OCR
 
@@ -31,7 +31,7 @@
 | **智谱AI (ZhipuAI)** | glm-4.5v | 国产大模型，多模态能力强 |
 | **豆包(Doubao)** | doubao-seed-1-6-vision-250815 | 中文优化效果好，性价比高 |
 | **OpenAI** | gpt-5-mini | 高精度，多语言支持 |
-| **Google Gemini** | gemini-2.5-flash | 速度快，成本低 |
+| **Google Gemini** | gemini-3.0-flash | 速度快，成本低 |
 | **xAI Grok** | grok-4 | 创新模型，独特优势 |
 | **OpenRouter** | qwen/qwen2.5-vl-72b-instruct:free | 统一接口，模型丰富 |
 | **Groq** | meta-llama/llama-4-maverick-17b-128e-instruct | 高性能推理，速度极快 |
@@ -39,7 +39,7 @@
 | **无问芯穹 (Infinigence)** | Qwen/Qwen3-VL-235B-A22B-Instruct | 顶尖OCR模型，中文识别优秀，免费使用|
 | **Mistral AI** | mistral-ocr-latest | 欧洲AI公司，视觉模型优秀，免费使用|
 | **浦源书生 (Intern)** | internvl3.5-241b-a28b | 学术界AI平台，多模态能力强，免费使用|
-| **PaddleOCR** | V3/V5/VL | 百度的飞桨平台，支持多语言识别，高效准确解析文档内容|
+| **PaddleOCR系列** | V3/V5/VL | 百度的飞桨平台，支持多语言识别，高效准确解析文档内容|
 
 ### 🏠 本地服务商（离线识别）
 | 服务商 | 建议模型 | 特点 |
@@ -223,6 +223,15 @@
 2. 注册账号并获取API密钥
 3. 学术界AI平台，多模态能力强
 
+### 百度飞桨OCR
+1. 访问 PaddleOCR官网：(https://aistudio.baidu.com/paddleocr)
+2. 注册账号并免费获取TOKEN和API_URL
+3. 每位用户每日对同一模型的解析上限为3000页，超出将返回429错误。
+
+
+
+
+   
 ## 🏠 本地服务安装指南
 
 ### Ollama (完全离线)
@@ -289,7 +298,8 @@
 
 
 ## 📝 版本历史
-- **v2.8.0**：增加PaddleOCR-V5以及PaddleOCR-VL功能。用户可自行前往百度PaddleOCR任务中心免费获得PaddleOCR-V5以及PaddleOCR-VL的TOKEN和API_URL！地址：https://aistudio.baidu.com/paddleocr/task
+- **v2.9.0**：增加PP-StructureV3功能。对复杂版面内容解析更精准。
+- **v2.8.0**：增加PaddleOCR-V5以及PaddleOCR-VL功能。
 - **v2.7.0**：调整双通道策略，现在双通道:AI高精度识别(含位置版)识别精度更高、识别速度速度更快。
 - **v2.6.0**：🚀 **重大更新** 完美解决大模型OCR无法文字对齐的问题！新增并完善双通道识别，通过本地PaddleOCR检测识别真实坐标，再用所用AI模型识别文本，识别文字与原图文字完美对齐！并发识别、框数限制、本地高分直接采用、裁剪补白等参数可调，整图识别速度较之前版本更快。
 - **v2.5.0**：🎉 **社区贡献更新** - 新增5个AI服务商支持！添加Groq（高性能推理）、魔搭ModelScope（阿里达摩院）、无问芯穹Infinigence（月之暗面）、Mistral AI（欧洲AI）、浦源书生Intern（学术界AI），大幅扩展AI服务商选择。优化本地服务自定义地址功能。
