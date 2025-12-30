@@ -288,6 +288,7 @@
 
 
 ## 📝 版本历史
+- **v2.8.0**：增加PaddleOCR-V5以及PaddleOCR-VL功能。用户可自行前往百度PaddleOCR任务中心免费获得PaddleOCR-V5以及PaddleOCR-VL的TOKEN和API_URL！地址：https://aistudio.baidu.com/paddleocr/task
 - **v2.7.0**：调整双通道策略，现在双通道:AI高精度识别(含位置版)识别精度更高、识别速度速度更快。
 - **v2.6.0**：🚀 **重大更新** 完美解决大模型OCR无法文字对齐的问题！新增并完善双通道识别，通过本地PaddleOCR检测识别真实坐标，再用所用AI模型识别文本，识别文字与原图文字完美对齐！并发识别、框数限制、本地高分直接采用、裁剪补白等参数可调，整图识别速度较之前版本更快。
 - **v2.5.0**：🎉 **社区贡献更新** - 新增5个AI服务商支持！添加Groq（高性能推理）、魔搭ModelScope（阿里达摩院）、无问芯穹Infinigence（月之暗面）、Mistral AI（欧洲AI）、浦源书生Intern（学术界AI），大幅扩展AI服务商选择。优化本地服务自定义地址功能。
