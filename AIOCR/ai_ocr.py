@@ -1030,6 +1030,61 @@ class PaddleVLProvider(BaseProvider):
             raise Exception(f"解析PaddleOCR-VL响应失败: {str(e)}")
 
 
+# PP-StructureV3 Provider (在线)
+class PPStructureV3Provider(BaseProvider):
+    """PP-StructureV3在线服务提供商 - 文档解析与智能文字识别"""
+    
+    def get_default_api_base(self):
+        return ""
+
+    def get_default_model(self):
+        return ""
+
+    def build_headers(self):
+        return {
+            "Authorization": f"token {self.api_key}",
+            "Content-Type": "application/json"
+        }
+
+    def build_payload(self, image_base64, prompt):
+        required_payload = {
+            "file": image_base64,
+            "fileType": 1,
+        }
+        optional_payload = {
+            "useDocOrientationClassify": False,
+            "useDocUnwarping": False,
+            "useTextlineOrientation": True,
+            "useSealRecognition": False,
+            "useTableRecognition": True,
+            "useFormulaRecognition": True,
+            "useChartRecognition": False,
+            "useRegionDetection": True,
+            "visualize": False,
+        }
+        payload = {**required_payload, **optional_payload}
+        return payload
+
+    def parse_response(self, response_text):
+        try:
+            data = json.loads(response_text)
+            if data.get("errorCode") != 0:
+                raise Exception(data.get("errorMsg") or "API错误")
+            result = data.get("result", {})
+            layout_results = result.get("layoutParsingResults", [])
+            if not layout_results:
+                return ""
+            parts = []
+            for res in layout_results:
+                md = res.get("markdown", {})
+                txt = md.get("text") if isinstance(md, dict) else None
+                if isinstance(txt, str) and txt.strip():
+                    parts.append(txt.strip())
+            return "\n\n".join(parts) if parts else ""
+        except Exception as e:
+            raise Exception(f"解析PP-StructureV3响应失败: {str(e)}")
+
+
 # Provider工厂
 class ProviderFactory:
     @staticmethod
@@ -1052,6 +1107,7 @@ class ProviderFactory:
             "intern": InternProvider,  # 新增：书生AI Provider
             "paddle": PaddleProvider,  # 新增：PaddleOCR Provider
             "paddle_vl": PaddleVLProvider,  # 新增：PaddleOCR-VL Provider
+            "pp_structure_v3": PPStructureV3Provider,  # 新增：PP-StructureV3 Provider
 
         }
         
@@ -2030,6 +2086,10 @@ class Api:
             url = self.provider.model
             if isinstance(url, str) and url.startswith("/") and api_base:
                 url = f"{api_base.rstrip('/')}" + url
+        elif provider_name == "pp_structure_v3":
+            url = self.provider.model
+            if isinstance(url, str) and url.startswith("/") and api_base:
+                url = f"{api_base.rstrip('/')}" + url
         else:
             url = f"{api_base}/chat/completions"
         
@@ -2065,9 +2125,7 @@ class Api:
                         if isinstance(p, dict):
                             md = p.get("markdown")
                             if isinstance(md, str) and md.strip():
-                                parts.append(md.strip())
-                            if parts:
-                                return "\n\n".join(parts)
+                              return "\n\n".join(parts)
                 if isinstance(data.get("markdown"), str):
                     return data["markdown"]
                 if isinstance(data.get("result"), dict):
@@ -2406,5 +2464,4 @@ class Api:
     def _create_error_result(self, error_msg):
         """创建错误结果"""
         return {"code": 102, "data": f"[Error] {error_msg}"}
-
 
