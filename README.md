@@ -39,6 +39,7 @@
 | **无问芯穹 (Infinigence)** | Qwen/Qwen3-VL-235B-A22B-Instruct | 顶尖OCR模型，中文识别优秀，免费使用|
 | **Mistral AI** | mistral-ocr-latest | 欧洲AI公司，视觉模型优秀，免费使用|
 | **浦源书生 (Intern)** | internvl3.5-241b-a28b | 学术界AI平台，多模态能力强，免费使用|
+| **PaddleOCR** | V3/V5/VL | 百度的飞桨平台，支持多语言识别，高效准确解析文档内容|
 
 ### 🏠 本地服务商（离线识别）
 | 服务商 | 建议模型 | 特点 |
