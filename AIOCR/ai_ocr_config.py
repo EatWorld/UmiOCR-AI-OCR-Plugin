@@ -74,6 +74,10 @@ PROVIDER_CONFIGS = {
         "api_base": "",
         "model": "",
     },
+    "pp_structure_v3": {
+        "api_base": "",
+        "model": "",
+    },
 }
 
 # 获取服务商默认配置的辅助函数
@@ -133,6 +137,7 @@ globalOptions = {
             ["intern", "浦源书生 (Intern)"],
             ["paddle", "PaddleOCR (在线)"],
             ["paddle_vl", "PaddleOCR-VL (在线)"],
+            ["pp_structure_v3", "PP-StructureV3 (在线)"],
 
         ],
         "toolTip": tr("选择当前要使用的AI服务商。所有服务商的配置都会保存，切换时无需重新输入。"),
@@ -380,7 +385,20 @@ globalOptions = {
         "title": tr("PaddleOCR-VL API URL"),
         "default": "",
         "type": "text",
-        "toolTip": tr("请输入PaddleOCR-VL的完整API URL"),
+        "toolTip": tr("请输入PaddleOCR-VL的完整API URL，如 /layout-parsing"),
+    },
+    # PP-StructureV3 在线配置
+    "pp_structure_v3_api_key": {
+        "title": tr("PP-StructureV3 Token"),
+        "default": "",
+        "type": "text",
+        "toolTip": tr("请输入PP-StructureV3的Access Token"),
+    },
+    "pp_structure_v3_model": {
+        "title": tr("PP-StructureV3 API URL"),
+        "default": "",
+        "type": "text",
+        "toolTip": tr("请输入PP-StructureV3的完整API URL，访问 https://aistudio.baidu.com/paddleocr/task 获取"),
     },
 
     # 使用 z_ 前缀确保高级设置排在最后
@@ -505,4 +523,3 @@ localOptions = {
         "toolTip": tr("对检测框四周增加少量像素，避免裁剪过紧影响识别。"),
     },
 }
-
