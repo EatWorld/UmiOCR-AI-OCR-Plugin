@@ -66,6 +66,14 @@ PROVIDER_CONFIGS = {
         "api_base": "https://chat.intern-ai.org.cn/api/v1",
         "model": "",
     },
+    "paddle": {
+        "api_base": "",
+        "model": "",
+    },
+    "paddle_vl": {
+        "api_base": "",
+        "model": "",
+    },
 }
 
 # 获取服务商默认配置的辅助函数
@@ -123,6 +131,8 @@ globalOptions = {
             ["mistral", "Mistral AI"],
             ["modelscope", "魔搭 (ModelScope)"],  # 新增：魔搭选项
             ["intern", "浦源书生 (Intern)"],
+            ["paddle", "PaddleOCR (在线)"],
+            ["paddle_vl", "PaddleOCR-VL (在线)"],
 
         ],
         "toolTip": tr("选择当前要使用的AI服务商。所有服务商的配置都会保存，切换时无需重新输入。"),
@@ -346,6 +356,33 @@ globalOptions = {
         "toolTip": tr("浦源书生多模态模型，如：internvl3.5-241b-a28b"),
     },
 
+    # PaddleOCR 在线配置
+    "paddle_api_key": {
+        "title": tr("PaddleOCR Token"),
+        "default": "",
+        "type": "text",
+        "toolTip": tr("请输入PaddleOCR的Access Token"),
+    },
+    "paddle_model": {
+        "title": tr("PaddleOCR API URL"),
+        "default": "",
+        "type": "text",
+        "toolTip": tr("请输入AI Studio任务中的完整API URL"),
+    },
+    # PaddleOCR-VL 在线配置
+    "paddle_vl_api_key": {
+        "title": tr("PaddleOCR-VL Token"),
+        "default": "",
+        "type": "text",
+        "toolTip": tr("请输入PaddleOCR-VL的Access Token"),
+    },
+    "paddle_vl_model": {
+        "title": tr("PaddleOCR-VL API URL"),
+        "default": "",
+        "type": "text",
+        "toolTip": tr("请输入PaddleOCR-VL的完整API URL"),
+    },
+
     # 使用 z_ 前缀确保高级设置排在最后
     "z_proxy_url": {
         "title": tr("代理URL"),
@@ -468,3 +505,4 @@ localOptions = {
         "toolTip": tr("对检测框四周增加少量像素，避免裁剪过紧影响识别。"),
     },
 }
+
