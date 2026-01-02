@@ -17,6 +17,13 @@ import importlib.util
 import sys
 import types
 
+def remove_image_tags(text):
+    """移除文本中的所有HTML标签"""
+    if not text:
+        return text
+    pattern = r'<[^>]+>'
+    return re.sub(pattern, '', text)
+
 # Provider基类
 class BaseProvider:
     """AI OCR服务提供商基类"""
@@ -939,50 +946,6 @@ class PaddleProvider(BaseProvider):
         return texts
 
 
-class PaddleVLProvider(BaseProvider):
-    def get_default_api_base(self):
-        return ""
-
-    def get_default_model(self):
-        return ""
-
-    def build_headers(self):
-        return {
-            "Authorization": f"token {self.api_key}",
-            "Content-Type": "application/json"
-        }
-
-    def build_payload(self, image_base64, prompt):
-        required_payload = {
-            "file": image_base64,
-            "fileType": 1,
-        }
-        optional_payload = {
-            "useDocOrientationClassify": False,
-            "useDocUnwarping": False,
-            "useChartRecognition": False,
-        }
-        payload = {**required_payload, **optional_payload}
-        return payload
-
-    def parse_response(self, response_text):
-        try:
-            data = json.loads(response_text)
-            if data.get("errorCode") != 0:
-                raise Exception(data.get("errorMsg") or "API错误")
-            result = data.get("result", {})
-            pages = result.get("layoutParsingResults", [])
-            if not pages:
-                return ""
-            parts = []
-            for p in pages:
-                md = p.get("markdown", {})
-                txt = md.get("text") if isinstance(md, dict) else None
-                if isinstance(txt, str) and txt.strip():
-                    parts.append(txt.strip())
-            return "\n\n".join(parts) if parts else ""
-        except Exception as e:
-            raise Exception(f"解析PaddleOCR-VL响应失败: {str(e)}")
 # PaddleOCR-VL Provider (在线)
 class PaddleVLProvider(BaseProvider):
     def get_default_api_base(self):
@@ -1025,7 +988,8 @@ class PaddleVLProvider(BaseProvider):
                 txt = md.get("text") if isinstance(md, dict) else None
                 if isinstance(txt, str) and txt.strip():
                     parts.append(txt.strip())
-            return "\n\n".join(parts) if parts else ""
+            result_text = "\n\n".join(parts) if parts else ""
+            return remove_image_tags(result_text)
         except Exception as e:
             raise Exception(f"解析PaddleOCR-VL响应失败: {str(e)}")
 
@@ -1080,7 +1044,8 @@ class PPStructureV3Provider(BaseProvider):
                 txt = md.get("text") if isinstance(md, dict) else None
                 if isinstance(txt, str) and txt.strip():
                     parts.append(txt.strip())
-            return "\n\n".join(parts) if parts else ""
+            result_text = "\n\n".join(parts) if parts else ""
+            return remove_image_tags(result_text)
         except Exception as e:
             raise Exception(f"解析PP-StructureV3响应失败: {str(e)}")
 
@@ -1443,8 +1408,18 @@ class Api:
             # 创建HTTP客户端
             self.http_client = HTTPClient(timeout, proxy_url)
             
+            # 根据不同的provider使用不同的并发数配置
+            if provider_name == "paddle":
+                max_workers = self.global_config.get("paddle_max_concurrent", 5)
+            elif provider_name == "paddle_vl":
+                max_workers = self.global_config.get("paddle_vl_max_concurrent", 5)
+            elif provider_name == "pp_structure_v3":
+                max_workers = self.global_config.get("pp_structure_v3_max_concurrent", 5)
+            else:
+                max_workers = self.max_concurrent
+            
             # 创建线程池
-            self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=self.max_concurrent)
+            self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=max_workers)
             
             # 保存局部配置
             self.local_config = argd
