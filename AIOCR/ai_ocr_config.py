@@ -401,6 +401,38 @@ globalOptions = {
         "toolTip": tr("请输入PP-StructureV3的完整API URL，访问 https://aistudio.baidu.com/paddleocr/task 获取"),
     },
 
+    # PaddleOCR系列并发数配置
+    "paddle_max_concurrent": {
+        "title": tr("PaddleOCR 并发数"),
+        "default": 5,
+        "min": 1,
+        "max": 20,
+        "unit": tr("个"),
+        "isInt": True,
+        "toolTip": tr("PaddleOCR批量处理时的最大并发请求数。"),
+        "advanced": True,
+    },
+    "paddle_vl_max_concurrent": {
+        "title": tr("PaddleOCR-VL 并发数"),
+        "default": 5,
+        "min": 1,
+        "max": 20,
+        "unit": tr("个"),
+        "isInt": True,
+        "toolTip": tr("PaddleOCR-VL批量处理时的最大并发请求数。"),
+        "advanced": True,
+    },
+    "pp_structure_v3_max_concurrent": {
+        "title": tr("PP-StructureV3 并发数"),
+        "default": 5,
+        "min": 1,
+        "max": 20,
+        "unit": tr("个"),
+        "isInt": True,
+        "toolTip": tr("PP-StructureV3批量处理时的最大并发请求数。"),
+        "advanced": True,
+    },
+
     # 使用 z_ 前缀确保高级设置排在最后
     "z_proxy_url": {
         "title": tr("代理URL"),
