@@ -74,6 +74,10 @@ PROVIDER_CONFIGS = {
         "api_base": "",
         "model": "",
     },
+    "paddle_vl_15": {
+        "api_base": "",
+        "model": "",
+    },
     "pp_structure_v3": {
         "api_base": "",
         "model": "",
@@ -137,6 +141,7 @@ globalOptions = {
             ["intern", "浦源书生 (Intern)"],
             ["paddle", "PaddleOCR (在线)"],
             ["paddle_vl", "PaddleOCR-VL (在线)"],
+            ["paddle_vl_15", "PaddleOCR-VL-1.5 (在线)"],
             ["pp_structure_v3", "PP-StructureV3 (在线)"],
 
         ],
@@ -387,6 +392,18 @@ globalOptions = {
         "type": "text",
         "toolTip": tr("请输入PaddleOCR-VL的完整API URL，如 /layout-parsing"),
     },
+    "paddle_vl_15_api_key": {
+        "title": tr("PaddleOCR-VL-1.5 Token"),
+        "default": "",
+        "type": "text",
+        "toolTip": tr("请输入PaddleOCR-VL-1.5的Access Token"),
+    },
+    "paddle_vl_15_model": {
+        "title": tr("PaddleOCR-VL-1.5 API URL"),
+        "default": "",
+        "type": "text",
+        "toolTip": tr("请输入PaddleOCR-VL-1.5的完整API URL（含 https://...），如 https://.../layout-parsing"),
+    },
     # PP-StructureV3 在线配置
     "pp_structure_v3_api_key": {
         "title": tr("PP-StructureV3 Token"),
@@ -420,6 +437,16 @@ globalOptions = {
         "unit": tr("个"),
         "isInt": True,
         "toolTip": tr("PaddleOCR-VL批量处理时的最大并发请求数。"),
+        "advanced": True,
+    },
+    "paddle_vl_15_max_concurrent": {
+        "title": tr("PaddleOCR-VL-1.5 并发数"),
+        "default": 5,
+        "min": 1,
+        "max": 20,
+        "unit": tr("个"),
+        "isInt": True,
+        "toolTip": tr("PaddleOCR-VL-1.5批量处理时的最大并发请求数。"),
         "advanced": True,
     },
     "pp_structure_v3_max_concurrent": {

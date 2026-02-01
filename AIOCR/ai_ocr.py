@@ -969,6 +969,7 @@ class PaddleVLProvider(BaseProvider):
             "useDocOrientationClassify": False,
             "useDocUnwarping": False,
             "useChartRecognition": False,
+            "prettifyMarkdown": True,
         }
         payload = {**required_payload, **optional_payload}
         return payload
@@ -992,6 +993,55 @@ class PaddleVLProvider(BaseProvider):
             return remove_image_tags(result_text)
         except Exception as e:
             raise Exception(f"解析PaddleOCR-VL响应失败: {str(e)}")
+
+
+class PaddleVL15Provider(BaseProvider):
+    def get_default_api_base(self):
+        return ""
+
+    def get_default_model(self):
+        return ""
+
+    def build_headers(self):
+        return {
+            "Authorization": f"token {self.api_key}",
+            "Content-Type": "application/json"
+        }
+
+    def build_payload(self, image_base64, prompt):
+        required_payload = {
+            "file": image_base64,
+            "fileType": 1,
+        }
+        optional_payload = {
+            "useDocOrientationClassify": False,
+            "useDocUnwarping": False,
+            "useChartRecognition": False,
+            "useLayoutDetection": True,
+            "prettifyMarkdown": True,
+        }
+        payload = {**required_payload, **optional_payload}
+        return payload
+
+    def parse_response(self, response_text):
+        try:
+            data = json.loads(response_text)
+            if data.get("errorCode") != 0:
+                raise Exception(data.get("errorMsg") or "API错误")
+            result = data.get("result", {})
+            pages = result.get("layoutParsingResults", [])
+            if not pages:
+                return ""
+            parts = []
+            for p in pages:
+                md = p.get("markdown", {})
+                txt = md.get("text") if isinstance(md, dict) else None
+                if isinstance(txt, str) and txt.strip():
+                    parts.append(txt.strip())
+            result_text = "\n\n".join(parts) if parts else ""
+            return remove_image_tags(result_text)
+        except Exception as e:
+            raise Exception(f"解析PaddleOCR-VL-1.5响应失败: {str(e)}")
 
 
 # PP-StructureV3 Provider (在线)
@@ -1072,6 +1122,7 @@ class ProviderFactory:
             "intern": InternProvider,  # 新增：书生AI Provider
             "paddle": PaddleProvider,  # 新增：PaddleOCR Provider
             "paddle_vl": PaddleVLProvider,  # 新增：PaddleOCR-VL Provider
+            "paddle_vl_15": PaddleVL15Provider,  # 新增：PaddleOCR-VL-1.5 Provider
             "pp_structure_v3": PPStructureV3Provider,  # 新增：PP-StructureV3 Provider
 
         }
@@ -1413,6 +1464,8 @@ class Api:
                 max_workers = self.global_config.get("paddle_max_concurrent", 5)
             elif provider_name == "paddle_vl":
                 max_workers = self.global_config.get("paddle_vl_max_concurrent", 5)
+            elif provider_name == "paddle_vl_15":
+                max_workers = self.global_config.get("paddle_vl_15_max_concurrent", 5)
             elif provider_name == "pp_structure_v3":
                 max_workers = self.global_config.get("pp_structure_v3_max_concurrent", 5)
             else:
@@ -2058,6 +2111,10 @@ class Api:
             if isinstance(url, str) and url.startswith("/") and api_base:
                 url = f"{api_base.rstrip('/')}" + url
         elif provider_name == "paddle_vl":
+            url = self.provider.model
+            if isinstance(url, str) and url.startswith("/") and api_base:
+                url = f"{api_base.rstrip('/')}" + url
+        elif provider_name == "paddle_vl_15":
             url = self.provider.model
             if isinstance(url, str) and url.startswith("/") and api_base:
                 url = f"{api_base.rstrip('/')}" + url
