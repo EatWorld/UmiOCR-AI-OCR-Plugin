@@ -26,7 +26,7 @@
 ### 🌐 云端服务商
 | 服务商 | 建议模型 | 特点 |
 |--------|----------|------|
-| **硅基流动 (SiliconFlow)** | Qwen/Qwen3-VL-235B-A22B-Instruct （**强烈推荐使用**）或 PaddlePaddle/PaddleOCR-VL-1.5 | 开源模型多，价格低，速度快，**中文识别准确率超高**，**强烈推荐** |
+| **硅基流动 (SiliconFlow)** | Qwen/Qwen3-VL-235B-A22B-Instruct （**强烈推荐**）或 PaddlePaddle/PaddleOCR-VL-1.5 | 开源模型多，价格低，速度快，**中文识别准确率超高**，**强烈推荐** |
 | **阿里云百炼 (Alibaba)** | Qwen/Qwen3-VL-235B-A22B-Instruct | **顶尖OCR模型**，中外文识别**极其优秀**，**强烈推荐**  |
 | **智谱AI (ZhipuAI)** | GLM-4.6V/GLM-OCR | 国产大模型，多模态能力强，**相当优秀** |
 | **豆包(Doubao)** | doubao-seed-1-8-251228 | 中文优化效果好，性价比高 |
@@ -35,11 +35,11 @@
 | **xAI Grok** | grok-4 | 创新模型，独特优势 |
 | **OpenRouter** | qwen/qwen2.5-vl-72b-instruct:free | 统一接口，模型丰富 |
 | **Groq** | meta-llama/llama-4-maverick-17b-128e-instruct | 高性能推理，速度极快 |
-| **魔搭 (ModelScope)** | Qwen/Qwen3-VL-235B-A22B-Instruct **（强烈推荐使用）** | 阿里达摩院开源平台，模型丰富，免费使用|
-| **无问芯穹 (Infinigence)** | Qwen/Qwen3-VL-235B-A22B-Instruct **（强烈推荐使用）**| 顶尖OCR模型，中文识别优秀，免费使用|
+| **魔搭 (ModelScope)** | Qwen/Qwen3-VL-235B-A22B-Instruct **（强烈推荐）** | 阿里达摩院开源平台，模型丰富，免费使用|
+| **无问芯穹 (Infinigence)** | Qwen/Qwen3-VL-235B-A22B-Instruct **（强烈推荐）**| 顶尖OCR模型，中文识别优秀，免费使用|
 | **Mistral AI** | mistral-ocr-latest | 欧洲AI公司，视觉模型优秀，免费使用|
-| **浦源书生 (Intern)** | intern-s1-pro/internvl3.5-241b-a28b | 学术界AI平台，多模态能力强，免费使用，其中intern-s1-pro为**优秀OCR模型**，中文识别**非常优秀**，**非常推荐**|
-| **PaddleOCR系列** | V3/V5/VL/VL 1.5 | 百度的飞桨平台，支持多语言识别，高效准确解析文档内容，其中 VL 1.5 为**顶尖OCR模型**，中外文识别**极其优秀**，**非常推荐**|
+| **浦源书生 (Intern)** | intern-s1-pro/internvl3.5-241b-a28b | 学术界AI平台，多模态能力强，免费使用，其中intern-s1-pro为**优秀OCR模型**，中文识别**非常优秀**，**十分推荐**|
+| **百度PaddleOCR系列** | V3/V5/VL/VL 1.5 | 百度飞桨平台，支持多语言识别，高效准确解析文档内容，其中PaddleOCR-VL-1.5 为**顶尖OCR模型**，中外文识别**极其优秀**，**非常推荐**|
 
 ### 🏠 本地服务商（离线识别）
 | 服务商 | 建议模型 | 特点 |
