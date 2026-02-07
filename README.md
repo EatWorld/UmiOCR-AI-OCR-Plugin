@@ -26,20 +26,20 @@
 ### 🌐 云端服务商
 | 服务商 | 建议模型 | 特点 |
 |--------|----------|------|
-| **硅基流动 (SiliconFlow)** | Qwen/Qwen3-VL-235B-A22B-Instruct（推荐使用）或Qwen/Qwen2.5-VL-72B-Instruct | 开源模型多，价格低，速度快，准确率超高，**最推荐** |
-| **阿里云百炼 (Alibaba)** | Qwen/Qwen3-VL-235B-A22B-Instruct | 顶尖OCR模型，中文识别优秀，**最推荐**  |
-| **智谱AI (ZhipuAI)** | glm-4.5v | 国产大模型，多模态能力强 |
-| **豆包(Doubao)** | doubao-seed-1-6-vision-250815 | 中文优化效果好，性价比高 |
+| **硅基流动 (SiliconFlow)** | Qwen/Qwen3-VL-235B-A22B-Instruct **（强烈推荐使用）**或 PaddlePaddle/PaddleOCR-VL-1.5 | 开源模型多，价格低，速度快，**中文识别准确率超高**，**强烈推荐** |
+| **阿里云百炼 (Alibaba)** | Qwen/Qwen3-VL-235B-A22B-Instruct | **顶尖OCR模型**，中外文识别**极其优秀**，**强烈推荐**  |
+| **智谱AI (ZhipuAI)** | GLM-4.6V/GLM-OCR | 国产大模型，多模态能力强，**相当优秀** |
+| **豆包(Doubao)** | doubao-seed-1-8-251228 | 中文优化效果好，性价比高 |
 | **OpenAI** | gpt-5-mini | 高精度，多语言支持 |
 | **Google Gemini** | gemini-3.0-flash | 速度快，成本低 |
 | **xAI Grok** | grok-4 | 创新模型，独特优势 |
 | **OpenRouter** | qwen/qwen2.5-vl-72b-instruct:free | 统一接口，模型丰富 |
 | **Groq** | meta-llama/llama-4-maverick-17b-128e-instruct | 高性能推理，速度极快 |
-| **魔搭 (ModelScope)** | Qwen/Qwen3-VL-235B-A22B-Instruct | 阿里达摩院开源平台，模型丰富，免费使用|
-| **无问芯穹 (Infinigence)** | Qwen/Qwen3-VL-235B-A22B-Instruct | 顶尖OCR模型，中文识别优秀，免费使用|
+| **魔搭 (ModelScope)** | Qwen/Qwen3-VL-235B-A22B-Instruct **（强烈推荐使用）** | 阿里达摩院开源平台，模型丰富，免费使用|
+| **无问芯穹 (Infinigence)** | Qwen/Qwen3-VL-235B-A22B-Instruct **（强烈推荐使用）**| 顶尖OCR模型，中文识别优秀，免费使用|
 | **Mistral AI** | mistral-ocr-latest | 欧洲AI公司，视觉模型优秀，免费使用|
-| **浦源书生 (Intern)** | internvl3.5-241b-a28b | 学术界AI平台，多模态能力强，免费使用|
-| **PaddleOCR系列** | V3/V5/VL | 百度的飞桨平台，支持多语言识别，高效准确解析文档内容|
+| **浦源书生 (Intern)** | intern-s1-pro/internvl3.5-241b-a28b | 学术界AI平台，多模态能力强，免费使用，其中intern-s1-pro为**优秀OCR模型**，中文识别**非常优秀**，**非常推荐**|
+| **PaddleOCR系列** | V3/V5/VL/VL 1.5 | 百度的飞桨平台，支持多语言识别，高效准确解析文档内容，其中 VL 1.5 为**顶尖OCR模型**，中外文识别**极其优秀**，**非常推荐**|
 
 ### 🏠 本地服务商（离线识别）
 | 服务商 | 建议模型 | 特点 |
@@ -63,7 +63,7 @@
 ### 识别图片："对于及其复杂的手写信息，也能完美识别"
 ![识别图片](docs/images/1.png)
 
-### PaddleOCR识别效果，结果很差劲
+### 本地PaddleOCR识别效果，结果很差劲
 ![PaddleOCR识别效果，很差劲](docs/images/2.jpg)
 
 ### WechatOCR识别效果，结果很差劲
@@ -220,13 +220,13 @@
 
 ### 浦源书生 (Intern)
 1. 访问 [书生·浦语平台](https://chat.intern-ai.org.cn/)
-2. 注册账号并获取API密钥
+2. 注册账号并获取API密钥；可自行申请更多Token
 3. 学术界AI平台，多模态能力强
 
 ### 百度飞桨OCR
 1. 访问 PaddleOCR官网：(https://aistudio.baidu.com/paddleocr)
 2. 注册账号并免费获取TOKEN和API_URL
-3. 每位用户每日对同一模型的解析上限为3000页，超出将返回429错误。
+3. 每位用户每日对同一模型的解析上限为3000页，超出将返回429错误；可自行申请更多页数
 
 
 
@@ -298,7 +298,7 @@
 
 
 ## 📝 版本历史
-- **v2.9.1**：增加PaddleOCR-VL-1.5，效果更好
+- **v2.9.1**：增加PaddleOCR-VL-1.5，效果更好，默认关闭版面识别，默认开启Markdown美化，输出文本更美观。
 - **v2.9.0**：增加PP-StructureV3功能，对复杂版面内容解析更精准。默认开启版面识别，默认开启Markdown美化，输出文本更美观。
 - **v2.8.0**：增加PaddleOCR-V5以及PaddleOCR-VL功能。
 - **v2.7.0**：调整双通道策略，现在双通道:AI高精度识别(含位置版)识别精度更高、识别速度速度更快。
