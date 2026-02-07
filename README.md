@@ -26,7 +26,7 @@
 ### 🌐 云端服务商
 | 服务商 | 建议模型 | 特点 |
 |--------|----------|------|
-| **硅基流动 (SiliconFlow)** | Qwen/Qwen3-VL-235B-A22B-Instruct **（强烈推荐使用）**或 PaddlePaddle/PaddleOCR-VL-1.5 | 开源模型多，价格低，速度快，**中文识别准确率超高**，**强烈推荐** |
+| **硅基流动 (SiliconFlow)** | Qwen/Qwen3-VL-235B-A22B-Instruct （**强烈推荐使用**）或 PaddlePaddle/PaddleOCR-VL-1.5 | 开源模型多，价格低，速度快，**中文识别准确率超高**，**强烈推荐** |
 | **阿里云百炼 (Alibaba)** | Qwen/Qwen3-VL-235B-A22B-Instruct | **顶尖OCR模型**，中外文识别**极其优秀**，**强烈推荐**  |
 | **智谱AI (ZhipuAI)** | GLM-4.6V/GLM-OCR | 国产大模型，多模态能力强，**相当优秀** |
 | **豆包(Doubao)** | doubao-seed-1-8-251228 | 中文优化效果好，性价比高 |
