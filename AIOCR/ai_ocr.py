@@ -471,6 +471,142 @@ class ZhipuProvider(BaseProvider):
         except Exception as e:
             raise Exception(f"解析智谱AI响应失败: {str(e)}")
 
+class GLMOCRProvider(BaseProvider):
+    """GLM-OCR服务提供商"""
+
+    def get_default_api_base(self):
+        return "https://open.bigmodel.cn/api/paas/v4"
+
+    def get_default_model(self):
+        return "glm-ocr"
+
+    def build_headers(self):
+        return {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {self.api_key}"
+        }
+
+    def build_payload(self, image_base64, prompt):
+        mime = self._guess_mime_from_base64(image_base64)
+        return {
+            "model": self.model or self.get_default_model(),
+            "file": f"data:{mime};base64,{image_base64}"
+        }
+
+    def parse_response(self, response_text):
+        try:
+            data = json.loads(response_text)
+        except Exception as e:
+            raise Exception(f"解析GLM-OCR响应失败: {str(e)}")
+
+        if isinstance(data, dict) and isinstance(data.get("error"), dict):
+            msg = data["error"].get("message") or data["error"].get("msg") or data["error"]
+            raise Exception(f"API返回错误: {msg}")
+
+        mode = getattr(self, "_glm_ocr_output_format", "text_only")
+
+        if isinstance(data, dict) and "layout_details" in data:
+            if mode == "text_only":
+                md = data.get("md_results")
+                if isinstance(md, str) and md.strip():
+                    return md
+            texts = self._parse_layout_details(data)
+            return json.dumps({"texts": texts}, ensure_ascii=False)
+
+        if isinstance(data, dict) and "words_result" in data:
+            words = data.get("words_result", [])
+            if mode == "text_only":
+                lines = [w.get("words", "") for w in words if isinstance(w, dict)]
+                return "\n".join([l for l in lines if l])
+            texts = []
+            for w in words:
+                if not isinstance(w, dict):
+                    continue
+                loc = w.get("location") or {}
+                left = float(loc.get("left", 0))
+                top = float(loc.get("top", 0))
+                width = float(loc.get("width", 0))
+                height = float(loc.get("height", 0))
+                box = [
+                    [left, top],
+                    [left + width, top],
+                    [left + width, top + height],
+                    [left, top + height],
+                ]
+                prob = w.get("probability") if isinstance(w.get("probability"), dict) else {}
+                score = float(prob.get("average", 1.0)) if isinstance(prob, dict) else 1.0
+                texts.append({
+                    "text": w.get("words", ""),
+                    "box": box,
+                    "score": score
+                })
+            return json.dumps({"texts": texts}, ensure_ascii=False)
+
+        if isinstance(data, dict) and "md_results" in data:
+            md = data.get("md_results")
+            if isinstance(md, str):
+                return md
+
+        return response_text
+
+    def _guess_mime_from_base64(self, image_base64):
+        try:
+            b = base64.b64decode(image_base64, validate=False)
+            if b[:3] == b"\xFF\xD8\xFF":
+                return "image/jpeg"
+            if b[:8] == b"\x89PNG\r\n\x1a\n":
+                return "image/png"
+            if b[:6] in (b"GIF87a", b"GIF89a"):
+                return "image/gif"
+            if b[:4] == b"RIFF" and b[8:12] == b"WEBP":
+                return "image/webp"
+        except Exception:
+            pass
+        return "image/jpeg"
+
+    def _parse_layout_details(self, data):
+        texts = []
+        page_sizes = []
+        if isinstance(data.get("data_info"), dict):
+            pages = data["data_info"].get("pages")
+            if isinstance(pages, list):
+                for p in pages:
+                    if isinstance(p, dict):
+                        page_sizes.append((p.get("width"), p.get("height")))
+        layout_pages = data.get("layout_details")
+        if not isinstance(layout_pages, list):
+            return texts
+        for page_index, blocks in enumerate(layout_pages):
+            if not isinstance(blocks, list):
+                continue
+            page_w, page_h = (None, None)
+            if page_index < len(page_sizes):
+                page_w, page_h = page_sizes[page_index]
+            for block in blocks:
+                if not isinstance(block, dict):
+                    continue
+                bbox = block.get("bbox_2d") or block.get("bbox") or block.get("box") or block.get("rect")
+                text = block.get("content") or block.get("text") or ""
+                if not bbox:
+                    continue
+                box = self._bbox_to_polygon(bbox, page_w, page_h)
+                if not box:
+                    continue
+                score = block.get("score", 1.0)
+                texts.append({"text": text, "box": box, "score": float(score) if score is not None else 1.0})
+        return texts
+
+    def _bbox_to_polygon(self, bbox, page_w, page_h):
+        if isinstance(bbox, (list, tuple)) and len(bbox) == 4 and all(isinstance(v, (int, float)) for v in bbox):
+            x1, y1, x2, y2 = bbox
+            if 0 <= x1 <= 1 and 0 <= y1 <= 1 and 0 <= x2 <= 1 and 0 <= y2 <= 1 and page_w and page_h:
+                x1, y1, x2, y2 = x1 * page_w, y1 * page_h, x2 * page_w, y2 * page_h
+            return [[x1, y1], [x2, y1], [x2, y2], [x1, y2]]
+        if isinstance(bbox, (list, tuple)) and len(bbox) >= 4 and all(isinstance(p, (list, tuple)) and len(p) >= 2 for p in bbox):
+            pts = bbox[:4]
+            return [[p[0], p[1]] for p in pts]
+        return None
+
 # 新增：魔搭 Provider
 class ModelScopeProvider(BaseProvider):
     """魔搭服务提供商"""
@@ -862,6 +998,62 @@ class InternProvider(BaseProvider):
             raise Exception(f"解析书生AI响应失败: {str(e)}")
 
 
+class MinerUProvider(BaseProvider):
+    def get_default_api_base(self):
+        return "https://mineru.net/api/v4"
+
+    def get_default_model(self):
+        return "vlm"
+
+    def build_headers(self):
+        return {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {self.api_key}",
+        }
+
+    def build_payload(self, image_base64, prompt):
+        return {
+            "image_base64": image_base64,
+            "prompt": prompt,
+        }
+
+    def parse_response(self, response_text):
+        try:
+            if not isinstance(response_text, str):
+                response_text = str(response_text)
+            s = response_text.strip()
+            if not s:
+                return None
+            if not s.startswith("{") and not s.startswith("["):
+                return s
+
+            data = json.loads(s)
+            md = None
+            if isinstance(data, dict):
+                if isinstance(data.get("data"), dict):
+                    d = data["data"]
+                    if isinstance(d.get("results"), list) and d["results"]:
+                        first = d["results"][0]
+                        if isinstance(first, dict):
+                            md = first.get("md_content") or first.get("markdown") or first.get("content")
+                if md is None and isinstance(data.get("results"), list) and data["results"]:
+                    first = data["results"][0]
+                    if isinstance(first, dict):
+                        md = first.get("md_content") or first.get("markdown") or first.get("content")
+                if md is None:
+                    md = data.get("md_content") or data.get("markdown") or data.get("content")
+
+            if not isinstance(md, str):
+                md = response_text
+
+            md = remove_image_tags(md)
+            md = re.sub(r"!\[[^\]]*?\]\([^\)]*?\)", "", md)
+            md = re.sub(r"\n{3,}", "\n\n", md).strip()
+            return md
+        except Exception as e:
+            raise Exception(f"解析MinerU响应失败: {str(e)}")
+
+
 # PaddleOCR Provider (在线)
 class PaddleProvider(BaseProvider):
     """PaddleOCR在线服务提供商"""
@@ -874,8 +1066,7 @@ class PaddleProvider(BaseProvider):
 
     def build_headers(self):
         return {
-            "Authorization": f"token {self.api_key}",
-            "Content-Type": "application/json"
+            "Authorization": f"bearer {self.api_key}"
         }
         
     def build_payload(self, image_base64, prompt):
@@ -956,8 +1147,7 @@ class PaddleVLProvider(BaseProvider):
 
     def build_headers(self):
         return {
-            "Authorization": f"token {self.api_key}",
-            "Content-Type": "application/json"
+            "Authorization": f"bearer {self.api_key}"
         }
 
     def build_payload(self, image_base64, prompt):
@@ -1004,8 +1194,7 @@ class PaddleVL15Provider(BaseProvider):
 
     def build_headers(self):
         return {
-            "Authorization": f"token {self.api_key}",
-            "Content-Type": "application/json"
+            "Authorization": f"bearer {self.api_key}"
         }
 
     def build_payload(self, image_base64, prompt):
@@ -1056,8 +1245,7 @@ class PPStructureV3Provider(BaseProvider):
 
     def build_headers(self):
         return {
-            "Authorization": f"token {self.api_key}",
-            "Content-Type": "application/json"
+            "Authorization": f"bearer {self.api_key}"
         }
 
     def build_payload(self, image_base64, prompt):
@@ -1113,6 +1301,7 @@ class ProviderFactory:
             "doubao": DoubaoProvider,
             "alibaba": AlibabaProvider,
             "zhipu": ZhipuProvider,
+            "glm_ocr": GLMOCRProvider,
             "ollama": OllamaProvider,
             "lmstudio": LMStudioProvider,
             "groq": GroqProvider,
@@ -1120,6 +1309,7 @@ class ProviderFactory:
             "mistral": MistralProvider,
             "modelscope": ModelScopeProvider,  # 新增：魔搭 Provider
             "intern": InternProvider,  # 新增：书生AI Provider
+            "mineru": MinerUProvider,
             "paddle": PaddleProvider,  # 新增：PaddleOCR Provider
             "paddle_vl": PaddleVLProvider,  # 新增：PaddleOCR-VL Provider
             "paddle_vl_15": PaddleVL15Provider,  # 新增：PaddleOCR-VL-1.5 Provider
@@ -1385,6 +1575,117 @@ class HTTPClient:
             }
         except Exception as e:
             raise Exception(f"HTTP请求失败: {str(e)}")
+
+    def request(self, method, url, headers=None, data=None):
+        try:
+            try:
+                import brotli
+                accept_encoding = 'gzip, deflate, br'
+            except Exception:
+                accept_encoding = 'gzip, deflate'
+
+            default_headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                'Accept': 'application/json, text/plain, */*',
+                'Accept-Language': 'en-US,en;q=0.9',
+                'Accept-Encoding': accept_encoding,
+                'Connection': 'keep-alive',
+                'Cache-Control': 'no-cache'
+            }
+            if headers:
+                default_headers.update(headers)
+
+            req_data = data.encode('utf-8') if isinstance(data, str) else data
+            req = urllib.request.Request(url, data=req_data, headers=default_headers, method=method.upper())
+
+            import ssl
+            ssl_context = ssl.create_default_context()
+            ssl_context.check_hostname = False
+            ssl_context.verify_mode = ssl.CERT_NONE
+
+            if self.proxy_url:
+                proxy_handler = urllib.request.ProxyHandler({
+                    'http': self.proxy_url,
+                    'https': self.proxy_url
+                })
+                https_handler = urllib.request.HTTPSHandler(context=ssl_context)
+                opener = urllib.request.build_opener(proxy_handler, https_handler)
+            else:
+                https_handler = urllib.request.HTTPSHandler(context=ssl_context)
+                opener = urllib.request.build_opener(https_handler)
+
+            response = opener.open(req, timeout=self.timeout)
+            response_data = response.read()
+
+            content_encoding = response.headers.get('Content-Encoding', '').lower()
+            if content_encoding == 'gzip':
+                import gzip
+                response_data = gzip.decompress(response_data)
+            elif content_encoding == 'deflate':
+                import zlib
+                response_data = zlib.decompress(response_data)
+            elif content_encoding == 'br':
+                try:
+                    import brotli
+                    response_data = brotli.decompress(response_data)
+                except Exception:
+                    pass
+
+            try:
+                response_text = response_data.decode('utf-8')
+            except UnicodeDecodeError:
+                try:
+                    response_text = response_data.decode('latin-1')
+                except UnicodeDecodeError:
+                    response_text = response_data.decode('utf-8', errors='ignore')
+
+            return {
+                'status_code': response.getcode(),
+                'text': response_text
+            }
+        except urllib.error.HTTPError as e:
+            error_data = e.read()
+
+            content_encoding = e.headers.get('Content-Encoding', '').lower() if hasattr(e, 'headers') else ''
+            if content_encoding == 'gzip':
+                import gzip
+                try:
+                    error_data = gzip.decompress(error_data)
+                except Exception:
+                    pass
+            elif content_encoding == 'deflate':
+                import zlib
+                try:
+                    error_data = zlib.decompress(error_data)
+                except Exception:
+                    pass
+            elif content_encoding == 'br':
+                try:
+                    import brotli
+                    error_data = brotli.decompress(error_data)
+                except Exception:
+                    pass
+
+            try:
+                error_text = error_data.decode('utf-8')
+            except UnicodeDecodeError:
+                try:
+                    error_text = error_data.decode('latin-1')
+                except UnicodeDecodeError:
+                    error_text = error_data.decode('utf-8', errors='ignore')
+
+            return {
+                'status_code': e.code,
+                'text': error_text
+            }
+        except Exception as e:
+            raise Exception(f"HTTP请求失败: {str(e)}")
+
+    def get(self, url, headers=None):
+        return self.request("GET", url, headers=headers, data=None)
+
+    def put(self, url, headers=None, data=None):
+        return self.request("PUT", url, headers=headers, data=data)
 
 # 主API类
 class Api:
@@ -2018,6 +2319,10 @@ class Api:
         try:
             # 构建提示词
             prompt = self._build_prompt(config)
+            provider_name = self.global_config.get("a_provider", self.global_config.get("provider", "openai"))
+            if provider_name == "glm_ocr":
+                setattr(self.provider, "_glm_ocr_output_format", config.get("output_format", "text_only"))
+                setattr(self.provider, "_glm_ocr_language", config.get("language", "auto"))
             
             # 发送请求（默认重试3次 -> 可配置，默认1次）
             max_retries = int(config.get("max_retries", 1))
@@ -2083,6 +2388,12 @@ class Api:
         except Exception:
             provider_name = "unknown"
         print(f"[AIOCR] 调用 {provider_name} / 模型 {getattr(self.provider, 'model', None)} / 超时 {getattr(self.http_client, 'timeout', None)}s")
+        if provider_name in ("paddle", "paddle_vl", "paddle_vl_15", "pp_structure_v3"):
+            return self._send_paddle_async_request(image_base64)
+        if provider_name == "mineru":
+            return self._send_mineru_request(image_base64)
+        if provider_name == "glm_ocr":
+            return self._send_glm_ocr_request(image_base64)
         # 构建请求URL
         api_base = self.provider.api_base or self.provider.get_default_api_base()
         provider_name = self.global_config.get("a_provider", self.global_config.get("provider", "openai"))
@@ -2142,6 +2453,364 @@ class Api:
         
         return response['text']
 
+    def _send_paddle_async_request(self, image_base64):
+        job_url = "https://paddleocr.aistudio-app.com/api/v2/ocr/jobs"
+        headers = {
+            "Authorization": f"bearer {self.provider.api_key}"
+        }
+        provider_name = self.global_config.get("a_provider", self.global_config.get("provider", "paddle"))
+        model = self.provider.model or self.provider.get_default_model()
+        model_map = {
+            "paddle": "PP-OCRv5",
+            "paddle_vl": "PaddleOCR-VL",
+            "paddle_vl_15": "PaddleOCR-VL-1.5",
+            "pp_structure_v3": "PP-StructureV3"
+        }
+        if not isinstance(model, str) or not model.strip():
+            model = model_map.get(provider_name, "")
+        else:
+            model = model.strip()
+            if model.startswith("http") or "/" in model:
+                model = model_map.get(provider_name, model)
+        allowed_models = {"PP-OCRv5", "PaddleOCR-VL", "PaddleOCR-VL-1.5", "PP-StructureV3"}
+        if model not in allowed_models:
+            model = model_map.get(provider_name, model)
+        if not model:
+            raise Exception("未配置PaddleOCR模型名称")
+        optional_payload = {
+            "useDocOrientationClassify": False,
+            "useDocUnwarping": False,
+            "useChartRecognition": False
+        }
+        raw_b64 = image_base64
+        if isinstance(raw_b64, str) and raw_b64.startswith("data:"):
+            raw_b64 = raw_b64.split(",", 1)[-1]
+        image_bytes = base64.b64decode(raw_b64, validate=False)
+        filename, mime = self._glm_ocr_guess_file_info(image_bytes)
+        data = {
+            "model": model,
+            "optionalPayload": json.dumps(optional_payload, ensure_ascii=False)
+        }
+        files = {
+            "file": {
+                "filename": filename,
+                "content": image_bytes,
+                "content_type": mime
+            }
+        }
+        job_response = self.http_client.post_multipart(job_url, headers=headers, files=files, data=data)
+        if job_response['status_code'] != 200:
+            raise Exception(f"API请求失败 (状态码: {job_response['status_code']}): {job_response['text']}")
+        try:
+            job_data = json.loads(job_response['text'])
+        except Exception as e:
+            raise Exception(f"解析任务提交响应失败: {str(e)}")
+        job_id = ((job_data.get("data") or {}).get("jobId"))
+        if not job_id:
+            raise Exception(f"任务提交失败: {job_response['text']}")
+        jsonl_url = ""
+        while True:
+            job_result_response = self.http_client.request("GET", f"{job_url}/{job_id}", headers=headers)
+            if job_result_response['status_code'] != 200:
+                raise Exception(f"查询任务失败 (状态码: {job_result_response['status_code']}): {job_result_response['text']}")
+            try:
+                job_result_data = json.loads(job_result_response['text'])
+            except Exception as e:
+                raise Exception(f"解析任务状态失败: {str(e)}")
+            state = ((job_result_data.get("data") or {}).get("state"))
+            if state in ("pending", "running"):
+                time.sleep(5)
+                continue
+            if state == "done":
+                jsonl_url = ((job_result_data.get("data") or {}).get("resultUrl") or {}).get("jsonUrl")
+                break
+            if state == "failed":
+                error_msg = ((job_result_data.get("data") or {}).get("errorMsg")) or "任务失败"
+                raise Exception(f"任务失败: {error_msg}")
+            time.sleep(5)
+        if not jsonl_url:
+            raise Exception("未获取到结果下载地址")
+        jsonl_response = self.http_client.request("GET", jsonl_url)
+        if jsonl_response['status_code'] != 200:
+            raise Exception(f"下载结果失败 (状态码: {jsonl_response['status_code']}): {jsonl_response['text']}")
+        lines = jsonl_response.get("text", "").splitlines()
+        layout_results = []
+        ocr_results = []
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                item = json.loads(line)
+            except Exception:
+                continue
+            result = item.get("result") or {}
+            if isinstance(result, dict):
+                lr = result.get("layoutParsingResults")
+                if isinstance(lr, list):
+                    layout_results.extend(lr)
+                orr = result.get("ocrResults")
+                if isinstance(orr, list):
+                    ocr_results.extend(orr)
+        result_payload = {"errorCode": 0, "result": {}}
+        if layout_results:
+            result_payload["result"]["layoutParsingResults"] = layout_results
+        if ocr_results:
+            result_payload["result"]["ocrResults"] = ocr_results
+        return json.dumps(result_payload, ensure_ascii=False)
+
+    def _send_glm_ocr_request(self, image_base64):
+        api_base = self.provider.api_base or self.provider.get_default_api_base()
+        api_base = api_base.rstrip("/")
+        output_format = getattr(self.provider, "_glm_ocr_output_format", "text_only")
+        language = getattr(self.provider, "_glm_ocr_language", "auto")
+
+        if output_format == "with_coordinates":
+            url = f"{api_base}/layout_parsing"
+            headers = self.provider.build_headers()
+            payload = self.provider.build_payload(image_base64, "")
+            response = self.http_client.post(url, headers, json.dumps(payload))
+        else:
+            url = f"{api_base}/files/ocr"
+            headers = self.provider.build_headers()
+            image_bytes = base64.b64decode(image_base64, validate=False)
+            filename, mime = self._glm_ocr_guess_file_info(image_bytes)
+            files = {
+                "file": {
+                    "filename": filename,
+                    "content": image_bytes,
+                    "content_type": mime
+                }
+            }
+            data = {
+                "tool_type": "hand_write",
+                "language_type": self._glm_ocr_map_language(language),
+                "probability": "false"
+            }
+            response = self.http_client.post_multipart(url, headers=headers, files=files, data=data)
+
+        if response['status_code'] != 200:
+            raise Exception(f"API请求失败 (状态码: {response['status_code']}): {response['text']}")
+
+        return response['text']
+
+    def _glm_ocr_guess_file_info(self, image_bytes):
+        ext = "jpg"
+        mime = "image/jpeg"
+        try:
+            if image_bytes[:4] == b"%PDF":
+                ext = "pdf"
+                mime = "application/pdf"
+            elif image_bytes[:3] == b"\xFF\xD8\xFF":
+                ext = "jpg"
+                mime = "image/jpeg"
+            elif image_bytes[:8] == b"\x89PNG\r\n\x1a\n":
+                ext = "png"
+                mime = "image/png"
+            elif image_bytes[:6] in (b"GIF87a", b"GIF89a"):
+                ext = "gif"
+                mime = "image/gif"
+            elif image_bytes[:4] == b"RIFF" and image_bytes[8:12] == b"WEBP":
+                ext = "webp"
+                mime = "image/webp"
+        except Exception:
+            pass
+        return f"umi_ocr.{ext}", mime
+
+    def _glm_ocr_map_language(self, language):
+        lang_map = {
+            "auto": "AUTO",
+            "zh": "CHN_ENG",
+            "en": "ENG",
+            "ja": "JAP",
+            "ko": "KOR",
+            "fr": "FRE",
+            "de": "GER",
+            "es": "SPA",
+            "ru": "RUS",
+            "ar": "ARA",
+        }
+        return lang_map.get(language, "CHN_ENG")
+    
+    def _send_mineru_request(self, image_base64):
+        api_base = self.provider.api_base or self.provider.get_default_api_base()
+        if not api_base:
+            api_base = "https://mineru.net/api/v4"
+        api_base = api_base.rstrip("/")
+
+        image_bytes = base64.b64decode(image_base64, validate=False)
+        ext = self._mineru_guess_extension(image_bytes)
+        file_name = f"umi_ocr_{int(time.time() * 1000)}.{ext}"
+        data_id = f"umi_ocr_{int(time.time() * 1000)}"
+
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {self.provider.api_key}",
+        }
+        user_token = self.global_config.get("mineru_user_token", "")
+        if isinstance(user_token, str) and user_token.strip():
+            headers["token"] = user_token.strip()
+
+        model_version = self.provider.model or self.provider.get_default_model() or "vlm"
+
+        create_url = f"{api_base}/file-urls/batch"
+        local_lang = None
+        try:
+            local_lang = getattr(self, "local_config", {}).get("language")
+        except Exception:
+            local_lang = None
+        lang_map = {
+            "auto": "ch",
+            "zh": "ch",
+            "en": "en",
+            "ja": "japan",
+            "ko": "korean",
+            "fr": "french",
+            "de": "german",
+            "es": "es",
+            "ru": "ru",
+            "ar": "ar",
+        }
+        mineru_language = lang_map.get(local_lang, "ch")
+        create_payload = {
+            "enable_formula": True,
+            "enable_table": True,
+            "language": mineru_language,
+            "files": [{
+                "name": file_name,
+                "data_id": data_id,
+                "is_ocr": True if str(model_version).lower() == "pipeline" else False,
+            }],
+            "model_version": model_version,
+        }
+        create_resp = self.http_client.post(create_url, headers, json.dumps(create_payload))
+        if create_resp["status_code"] != 200:
+            raise Exception(f"MinerU 获取上传链接失败 (状态码: {create_resp['status_code']}): {create_resp['text']}")
+
+        try:
+            create_data = json.loads(create_resp["text"])
+        except Exception:
+            raise Exception(f"MinerU 获取上传链接失败: {create_resp['text']}")
+
+        if isinstance(create_data, dict) and create_data.get("code") not in (0, "0", None):
+            raise Exception(f"MinerU 获取上传链接失败: {create_data.get('msg') or create_resp['text']}")
+
+        batch_id = None
+        file_url = None
+        if isinstance(create_data, dict):
+            d = create_data.get("data")
+            if isinstance(d, dict):
+                batch_id = d.get("batch_id") or d.get("batchId")
+                urls = d.get("file_urls") or d.get("fileUrls") or d.get("urls")
+                if isinstance(urls, list) and urls:
+                    file_url = urls[0]
+        if not batch_id or not file_url:
+            raise Exception(f"MinerU 获取上传链接返回异常: {create_resp['text']}")
+
+        def _mineru_put_presigned(upload_url, body_bytes):
+            import http.client
+            import ssl
+            from urllib.parse import urlparse
+
+            u = urlparse(upload_url)
+            if u.scheme not in ("http", "https") or not u.netloc:
+                raise Exception(f"MinerU 上传链接非法: {upload_url}")
+
+            path = u.path or "/"
+            if u.query:
+                path = f"{path}?{u.query}"
+
+            timeout = getattr(self.http_client, "timeout", 30)
+            if u.scheme == "https":
+                ctx = ssl._create_unverified_context()
+                conn = http.client.HTTPSConnection(u.netloc, timeout=timeout, context=ctx)
+            else:
+                conn = http.client.HTTPConnection(u.netloc, timeout=timeout)
+
+            try:
+                conn.request("PUT", path, body=body_bytes, headers={"Content-Length": str(len(body_bytes))})
+                resp = conn.getresponse()
+                resp_bytes = resp.read()
+                status = getattr(resp, "status", None) or resp.getcode()
+            finally:
+                try:
+                    conn.close()
+                except Exception:
+                    pass
+
+            try:
+                resp_text = resp_bytes.decode("utf-8")
+            except Exception:
+                try:
+                    resp_text = resp_bytes.decode("latin-1")
+                except Exception:
+                    resp_text = resp_bytes.decode("utf-8", errors="ignore")
+
+            return {"status_code": status, "text": resp_text}
+
+        upload_resp = _mineru_put_presigned(file_url, image_bytes)
+        if upload_resp["status_code"] not in (200, 201, 204):
+            raise Exception(f"MinerU 上传文件失败 (状态码: {upload_resp['status_code']}): {upload_resp['text']}")
+
+        max_wait = max(60, int(getattr(self.http_client, "timeout", 30)) * 3)
+        poll_url = f"{api_base}/extract-results/batch/{batch_id}"
+        start_ts = time.time()
+        last_text = ""
+        while time.time() - start_ts < max_wait:
+            poll_resp = self.http_client.get(poll_url, headers=headers)
+            last_text = poll_resp.get("text", "") if isinstance(poll_resp, dict) else ""
+            if poll_resp.get("status_code") != 200:
+                time.sleep(0.8)
+                continue
+            try:
+                poll_data = json.loads(last_text) if isinstance(last_text, str) else last_text
+            except Exception:
+                time.sleep(0.8)
+                continue
+
+            if isinstance(poll_data, dict) and poll_data.get("code") not in (0, "0", None):
+                raise Exception(f"MinerU 解析失败: {poll_data.get('msg') or last_text}")
+
+            data = poll_data.get("data") if isinstance(poll_data, dict) else None
+            if isinstance(data, dict):
+                results = data.get("results")
+                if isinstance(results, list) and results:
+                    first = results[0]
+                    if isinstance(first, dict):
+                        if isinstance(first.get("md_content"), str) and first["md_content"].strip():
+                            return json.dumps(poll_data, ensure_ascii=False)
+                total_files = data.get("total_files") or data.get("totalFiles")
+                successful_files = data.get("successful_files") or data.get("successfulFiles")
+                failed_files = data.get("failed_files") or data.get("failedFiles")
+                if failed_files and int(failed_files) > 0:
+                    return json.dumps(poll_data, ensure_ascii=False)
+                if total_files is not None and successful_files is not None:
+                    try:
+                        if int(successful_files) >= int(total_files) and int(total_files) > 0:
+                            return json.dumps(poll_data, ensure_ascii=False)
+                    except Exception:
+                        pass
+
+            time.sleep(0.8)
+
+        raise Exception(f"MinerU 解析超时（{max_wait}s）: {last_text[:500]}")
+
+    def _mineru_guess_extension(self, image_bytes):
+        try:
+            if image_bytes[:4] == b"%PDF":
+                return "pdf"
+            if image_bytes[:3] == b"\xFF\xD8\xFF":
+                return "jpg"
+            if image_bytes[:8] == b"\x89PNG\r\n\x1a\n":
+                return "png"
+            if image_bytes[:6] in (b"GIF87a", b"GIF89a"):
+                return "gif"
+            if image_bytes[:4] == b"RIFF" and image_bytes[8:12] == b"WEBP":
+                return "webp"
+        except Exception:
+            pass
+        return "jpg"
+
     def _parse_mistral_response(self, response_text):
         if not response_text or not response_text.strip():
             raise Exception("解析Mistral响应失败: 服务器返回了空响应。")
@@ -2198,7 +2867,11 @@ class Api:
     def _convert_to_umi_format(self, content, config):
         """转换为Umi格式"""
         output_format = config.get("output_format", "text_only")
-        
+        provider_name = self.global_config.get("a_provider", self.global_config.get("provider", "openai"))
+
+        if provider_name == "mineru":
+            return self._parse_text_only(content)
+
         if output_format == "with_coordinates":
             return self._parse_text_with_coordinates(content)
         else:
