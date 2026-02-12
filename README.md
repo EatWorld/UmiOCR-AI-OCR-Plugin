@@ -225,8 +225,9 @@
 
 ### 百度飞桨OCR
 1. 访问 PaddleOCR官网：(https://aistudio.baidu.com/paddleocr)
-2. 注册账号并免费获取TOKEN和API_URL
+2. 注册账号并免费获取**TOKEN**和**模型名称**，如 PP-OCRv5 / PaddleOCR-VL / PaddleOCR-VL-1.5 / PP-StructureV3
 3. 每位用户每日对同一模型的解析上限为3000页，超出将返回429错误；可自行申请更多页数
+4. 解析方式现已更换为**异步解析**，支持超大文件解析！单次请求最大支持 **1000 页** pdf，支持传入文件链接。文件大小不能超过**200 MB**，支持上传本地文件。文件大小不能超过 50 MB。
 
 
 
