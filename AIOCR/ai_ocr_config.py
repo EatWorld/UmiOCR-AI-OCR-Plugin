@@ -282,6 +282,12 @@ globalOptions = {
         "type": "text",
         "toolTip": tr("Ollama本地视觉模型，如：llava:latest"),
     },
+    "ollama_api_base": {
+        "title": tr("Ollama API地址"),
+        "default": "http://localhost:11434/api",
+        "type": "text",
+        "toolTip": tr("Ollama本地视觉模型的API地址"),
+    },
 
     # LM Studio配置（本地）
     "lmstudio_api_key": {
@@ -295,6 +301,12 @@ globalOptions = {
         "default": "llava:latest",
         "type": "text",
         "toolTip": tr("LM Studio本地视觉模型，如：llava:latest"),
+    },
+    "lmstudio_api_base": {
+        "title": tr("LM Studio API地址"),
+        "default": "http://localhost:1234/v1",
+        "type": "text",
+        "toolTip": tr("LM Studio本地视觉模型的API地址"),
     },
 
     # Groq配置
