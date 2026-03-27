@@ -49,6 +49,10 @@ PROVIDER_CONFIGS = {
         "api_base": "https://api.groq.com/openai/v1",
         "model": "",  # 用户自定义
     },
+    "lmstudio": {
+        "api_base": "http://localhost:1234/v1",
+        "model": "",  # 用户自定义
+    },
     "infinigence": {  # 无问芯穷
         "api_base": "https://cloud.infini-ai.com/maas/v1",
         "model": "",
@@ -134,6 +138,7 @@ globalOptions = {
             ["alibaba", "阿里云百炼 (Alibaba)"],
             ["zhipu", "智谱AI (Z.AI)"],
             ["ollama", "Ollama (本地)"],
+            ["lmstudio",  "LM Studio (本地)"],
             ["groq", "Groq"],
             ["infinigence", "无问芯穷 (Infinigence)"],
             ["mistral", "Mistral AI"],
