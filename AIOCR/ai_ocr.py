@@ -1066,7 +1066,8 @@ class PaddleProvider(BaseProvider):
 
     def build_headers(self):
         return {
-            "Authorization": f"bearer {self.api_key}"
+            "Authorization": f"token {self.api_key}",
+            "Content-Type": "application/json"
         }
         
     def build_payload(self, image_base64, prompt):
@@ -1147,7 +1148,8 @@ class PaddleVLProvider(BaseProvider):
 
     def build_headers(self):
         return {
-            "Authorization": f"bearer {self.api_key}"
+            "Authorization": f"token {self.api_key}",
+            "Content-Type": "application/json"
         }
 
     def build_payload(self, image_base64, prompt):
@@ -1194,7 +1196,8 @@ class PaddleVL15Provider(BaseProvider):
 
     def build_headers(self):
         return {
-            "Authorization": f"bearer {self.api_key}"
+            "Authorization": f"token {self.api_key}",
+            "Content-Type": "application/json"
         }
 
     def build_payload(self, image_base64, prompt):
@@ -1245,7 +1248,8 @@ class PPStructureV3Provider(BaseProvider):
 
     def build_headers(self):
         return {
-            "Authorization": f"bearer {self.api_key}"
+            "Authorization": f"token {self.api_key}",
+            "Content-Type": "application/json"
         }
 
     def build_payload(self, image_base64, prompt):
@@ -1687,6 +1691,60 @@ class HTTPClient:
     def put(self, url, headers=None, data=None):
         return self.request("PUT", url, headers=headers, data=data)
 
+    def request_bytes(self, method, url, headers=None, data=None):
+        try:
+            default_headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                'Accept': '*/*',
+                'Accept-Language': 'en-US,en;q=0.9',
+                'Accept-Encoding': 'identity',
+                'Connection': 'keep-alive',
+                'Cache-Control': 'no-cache'
+            }
+            if headers:
+                default_headers.update(headers)
+
+            req_data = data.encode('utf-8') if isinstance(data, str) else data
+            req = urllib.request.Request(url, data=req_data, headers=default_headers, method=method.upper())
+
+            import ssl
+            ssl_context = ssl.create_default_context()
+            ssl_context.check_hostname = False
+            ssl_context.verify_mode = ssl.CERT_NONE
+
+            if self.proxy_url:
+                proxy_handler = urllib.request.ProxyHandler({
+                    'http': self.proxy_url,
+                    'https': self.proxy_url
+                })
+                https_handler = urllib.request.HTTPSHandler(context=ssl_context)
+                opener = urllib.request.build_opener(proxy_handler, https_handler)
+            else:
+                https_handler = urllib.request.HTTPSHandler(context=ssl_context)
+                opener = urllib.request.build_opener(https_handler)
+
+            response = opener.open(req, timeout=self.timeout)
+            response_data = response.read()
+
+            return {
+                'status_code': response.getcode(),
+                'data': response_data
+            }
+        except urllib.error.HTTPError as e:
+            try:
+                error_data = e.read()
+            except Exception:
+                error_data = b""
+            return {
+                'status_code': e.code,
+                'data': error_data
+            }
+        except Exception as e:
+            raise Exception(f"HTTP请求失败: {str(e)}")
+
+    def get_bytes(self, url, headers=None):
+        return self.request_bytes("GET", url, headers=headers, data=None)
+
 # 主API类
 class Api:
     def __init__(self, globalArgd):
@@ -1891,24 +1949,27 @@ class Api:
             self.detector = None
             raise RuntimeError(f"PaddleOCR 检测器启动失败: {e}")
 
-    def _crop_by_box(self, img, box):
+    def _crop_by_box(self, img, box, padding=0):
         """根据检测框裁剪图像，支持矩形与四点多边形"""
         try:
+            pad = int(padding) if isinstance(padding, (int, float, str)) else 0
+            if pad < 0:
+                pad = 0
             if isinstance(box, dict):
                 x = box.get('x', box.get('left'))
                 y = box.get('y', box.get('top'))
                 w = box.get('w', box.get('width'))
                 h = box.get('h', box.get('height'))
                 if x is not None and y is not None and w is not None and h is not None:
-                    x0, y0 = int(max(0, x)), int(max(0, y))
-                    x1, y1 = int(min(img.width, x + w)), int(min(img.height, y + h))
+                    x0, y0 = int(max(0, x - pad)), int(max(0, y - pad))
+                    x1, y1 = int(min(img.width, x + w + pad)), int(min(img.height, y + h + pad))
                     return img.crop((x0, y0, x1, y1))
                 pts = box.get('points') or box.get('polygon') or box.get('box')
             elif isinstance(box, (list, tuple)):
                 if len(box) == 4 and all(isinstance(v, (int, float)) for v in box):
                     x, y, w, h = box
-                    x0, y0 = int(max(0, x)), int(max(0, y))
-                    x1, y1 = int(min(img.width, x + w)), int(min(img.height, y + h))
+                    x0, y0 = int(max(0, x - pad)), int(max(0, y - pad))
+                    x1, y1 = int(min(img.width, x + w + pad)), int(min(img.height, y + h + pad))
                     return img.crop((x0, y0, x1, y1))
                 elif len(box) >= 4 and all(isinstance(p, (list, tuple)) and len(p) >= 2 for p in box):
                     pts = box
@@ -1919,8 +1980,8 @@ class Api:
             if pts:
                 xs = [p[0] for p in pts]
                 ys = [p[1] for p in pts]
-                x0, y0 = int(max(0, min(xs))), int(max(0, min(ys)))
-                x1, y1 = int(min(img.width, max(xs))), int(min(img.height, max(ys)))
+                x0, y0 = int(max(0, min(xs) - pad)), int(max(0, min(ys) - pad))
+                x1, y1 = int(min(img.width, max(xs) + pad)), int(min(img.height, max(ys) + pad))
                 if x1 > x0 and y1 > y0:
                     return img.crop((x0, y0, x1, y1))
         except Exception:
@@ -1941,6 +2002,79 @@ class Api:
         if isinstance(parsed, list):
             return '\n'.join(str(x) for x in parsed)
         return str(parsed)
+
+    def _recognize_lines_by_cropping(self, image_base64, filtered, language):
+        local = getattr(self, 'local_config', {}) or {}
+        max_workers = int(local.get('dual_max_workers', 3))
+        if max_workers <= 0:
+            max_workers = 1
+        padding = int(local.get('dual_crop_padding', 2))
+        if padding < 0:
+            padding = 0
+
+        try:
+            raw_b64 = image_base64
+            if isinstance(raw_b64, str) and raw_b64.startswith("data:image"):
+                raw_b64 = raw_b64.split(",", 1)[-1]
+            img = Image.open(BytesIO(base64.b64decode(raw_b64, validate=False)))
+        except Exception:
+            img = None
+
+        if not img:
+            return []
+
+        def _crop_to_b64(box):
+            try:
+                crop = self._crop_by_box(img, box, padding=padding)
+                try:
+                    if getattr(crop, "mode", None) != "RGB":
+                        crop = crop.convert("RGB")
+                except Exception:
+                    pass
+                buf = BytesIO()
+                crop.save(buf, format="JPEG", quality=90, optimize=True)
+                return base64.b64encode(buf.getvalue()).decode("utf-8")
+            except Exception:
+                return None
+
+        crop_b64_list = []
+        for f in filtered:
+            crop_b64_list.append(_crop_to_b64(f.get("box")))
+
+        def _recognize_one(b64str):
+            if not b64str:
+                return ""
+            try:
+                resp = self._run_ocr(b64str, {"output_format": "text_only", "language": language})
+            except Exception:
+                return ""
+            if not (isinstance(resp, dict) and resp.get("code") == 100 and isinstance(resp.get("data"), list)):
+                return ""
+            texts = []
+            for it in resp["data"]:
+                if not isinstance(it, dict):
+                    continue
+                t = (it.get("text") or "").strip()
+                if t:
+                    texts.append(t)
+            if not texts:
+                return ""
+            if len(texts) == 1:
+                return texts[0]
+            return "".join(texts)
+
+        results = [""] * len(crop_b64_list)
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as ex:
+            future_map = {}
+            for idx, b64str in enumerate(crop_b64_list):
+                future_map[ex.submit(_recognize_one, b64str)] = idx
+            for fut in concurrent.futures.as_completed(future_map):
+                idx = future_map[fut]
+                try:
+                    results[idx] = fut.result() or ""
+                except Exception:
+                    results[idx] = ""
+        return results
 
 
     def _run_paddle_first_correction(self, image_base64):
@@ -2036,6 +2170,17 @@ class Api:
             return det
         # 3) 构建纠错提示，将Paddle识别与坐标作为上下文提供给AI
         language = local.get("language", "auto")
+        provider_name = self.global_config.get("a_provider", self.global_config.get("provider", "openai"))
+        if provider_name in ("paddle", "paddle_vl", "paddle_vl_15", "pp_structure_v3"):
+            crop_lines = self._recognize_lines_by_cropping(image_base64, filtered, language)
+            if crop_lines:
+                result_data = []
+                for idx, f in enumerate(filtered):
+                    text = crop_lines[idx] if idx < len(crop_lines) and crop_lines[idx] else f.get("text", "")
+                    result_data.append({"text": text, "box": f["box"], "score": 1.0})
+                if result_data:
+                    return {"code": 100, "data": result_data}
+            return det
         lang_map = {"auto": "自动检测语言","zh": "中文","en": "英文","ja": "日文","ko":"韩文","fr":"法文","de":"德文","es":"西班牙文","ru":"俄文","ar":"阿拉伯文"}
         lang_instruction = lang_map.get(language, "自动检测语言")
         candidates = [{"text": f["text"], "box": f["box"]} for f in filtered]
@@ -2071,6 +2216,30 @@ class Api:
                 if isinstance(coord_fmt, dict) and coord_fmt.get("code") == 100 and isinstance(coord_fmt.get("data"), list):
                     ai_lines = [item.get("text", "") for item in coord_fmt["data"] if isinstance(item, dict) and item.get("text")]
             print(f"[AIOCR] AI纠错行数: {len(ai_lines)} / Paddle行数: {len(filtered)}")
+            bad_alignment = False
+            try:
+                if len(ai_lines) == 0:
+                    bad_alignment = True
+                elif len(filtered) > 0:
+                    if len(ai_lines) < int(len(filtered) * 0.8) or len(ai_lines) > int(len(filtered) * 1.2):
+                        bad_alignment = True
+                if not bad_alignment and ai_lines:
+                    max_len = max(len(t) for t in ai_lines if isinstance(t, str))
+                    if max_len >= 160 and len(filtered) >= 8:
+                        bad_alignment = True
+            except Exception:
+                bad_alignment = False
+
+            if bad_alignment:
+                crop_lines = self._recognize_lines_by_cropping(image_base64, filtered, language)
+                if crop_lines:
+                    result_data = []
+                    for idx, f in enumerate(filtered):
+                        text = crop_lines[idx] if idx < len(crop_lines) and crop_lines[idx] else f.get("text", "")
+                        result_data.append({"text": text, "box": f["box"], "score": 1.0})
+                    if result_data:
+                        return {"code": 100, "data": result_data}
+
             # 4.2 若AI纠错未返回行，尝试AI直出后匹配Paddle框
             if len(ai_lines) == 0:
                 try:
@@ -2096,28 +2265,8 @@ class Api:
                 # 进一步回退：逐框裁剪并对每个框进行AI识别纠错
                 try:
                     print("[AIOCR] AI直出仍为空，开始逐框裁剪识别纠错")
-                    # 尝试解码原始图片
-                    try:
-                        raw_b64 = image_base64
-                        if isinstance(raw_b64, str) and raw_b64.startswith("data:image"):
-                            raw_b64 = raw_b64.split(",", 1)[-1]
-                        img = Image.open(BytesIO(base64.b64decode(raw_b64)))
-                    except Exception:
-                        img = None
-                    ai_crop_lines = []
-                    if img:
-                        for f in filtered:
-                            crop = self._crop_by_box(img, f["box"])
-                            buf = BytesIO()
-                            crop.save(buf, format="PNG")
-                            crop_b64 = base64.b64encode(buf.getvalue()).decode("utf-8")
-                            resp = self._run_ocr(crop_b64, {"output_format": "text_only", "language": language})
-                            line_text = ""
-                            if isinstance(resp, dict) and resp.get("code") == 100 and isinstance(resp.get("data"), list) and len(resp["data"]) > 0:
-                                first = resp["data"][0]
-                                line_text = (first.get("text") or "").strip() if isinstance(first, dict) else ""
-                            ai_crop_lines.append(line_text)
-                    non_empty = sum(1 for t in ai_crop_lines if t)
+                    ai_crop_lines = self._recognize_lines_by_cropping(image_base64, filtered, language)
+                    non_empty = sum(1 for t in ai_crop_lines if isinstance(t, str) and t)
                     print(f"[AIOCR] 逐框纠错行数: {non_empty} / {len(filtered)}")
                     if non_empty > 0:
                         result_data = []
@@ -2388,8 +2537,6 @@ class Api:
         except Exception:
             provider_name = "unknown"
         print(f"[AIOCR] 调用 {provider_name} / 模型 {getattr(self.provider, 'model', None)} / 超时 {getattr(self.http_client, 'timeout', None)}s")
-        if provider_name in ("paddle", "paddle_vl", "paddle_vl_15", "pp_structure_v3"):
-            return self._send_paddle_async_request(image_base64)
         if provider_name == "mineru":
             return self._send_mineru_request(image_base64)
         if provider_name == "glm_ocr":
@@ -2452,112 +2599,6 @@ class Api:
             raise Exception(f"API请求失败 (状态码: {response['status_code']}): {response['text']}")
         
         return response['text']
-
-    def _send_paddle_async_request(self, image_base64):
-        job_url = "https://paddleocr.aistudio-app.com/api/v2/ocr/jobs"
-        headers = {
-            "Authorization": f"bearer {self.provider.api_key}"
-        }
-        provider_name = self.global_config.get("a_provider", self.global_config.get("provider", "paddle"))
-        model = self.provider.model or self.provider.get_default_model()
-        model_map = {
-            "paddle": "PP-OCRv5",
-            "paddle_vl": "PaddleOCR-VL",
-            "paddle_vl_15": "PaddleOCR-VL-1.5",
-            "pp_structure_v3": "PP-StructureV3"
-        }
-        if not isinstance(model, str) or not model.strip():
-            model = model_map.get(provider_name, "")
-        else:
-            model = model.strip()
-            if model.startswith("http") or "/" in model:
-                model = model_map.get(provider_name, model)
-        allowed_models = {"PP-OCRv5", "PaddleOCR-VL", "PaddleOCR-VL-1.5", "PP-StructureV3"}
-        if model not in allowed_models:
-            model = model_map.get(provider_name, model)
-        if not model:
-            raise Exception("未配置PaddleOCR模型名称")
-        optional_payload = {
-            "useDocOrientationClassify": False,
-            "useDocUnwarping": False,
-            "useChartRecognition": False
-        }
-        raw_b64 = image_base64
-        if isinstance(raw_b64, str) and raw_b64.startswith("data:"):
-            raw_b64 = raw_b64.split(",", 1)[-1]
-        image_bytes = base64.b64decode(raw_b64, validate=False)
-        filename, mime = self._glm_ocr_guess_file_info(image_bytes)
-        data = {
-            "model": model,
-            "optionalPayload": json.dumps(optional_payload, ensure_ascii=False)
-        }
-        files = {
-            "file": {
-                "filename": filename,
-                "content": image_bytes,
-                "content_type": mime
-            }
-        }
-        job_response = self.http_client.post_multipart(job_url, headers=headers, files=files, data=data)
-        if job_response['status_code'] != 200:
-            raise Exception(f"API请求失败 (状态码: {job_response['status_code']}): {job_response['text']}")
-        try:
-            job_data = json.loads(job_response['text'])
-        except Exception as e:
-            raise Exception(f"解析任务提交响应失败: {str(e)}")
-        job_id = ((job_data.get("data") or {}).get("jobId"))
-        if not job_id:
-            raise Exception(f"任务提交失败: {job_response['text']}")
-        jsonl_url = ""
-        while True:
-            job_result_response = self.http_client.request("GET", f"{job_url}/{job_id}", headers=headers)
-            if job_result_response['status_code'] != 200:
-                raise Exception(f"查询任务失败 (状态码: {job_result_response['status_code']}): {job_result_response['text']}")
-            try:
-                job_result_data = json.loads(job_result_response['text'])
-            except Exception as e:
-                raise Exception(f"解析任务状态失败: {str(e)}")
-            state = ((job_result_data.get("data") or {}).get("state"))
-            if state in ("pending", "running"):
-                time.sleep(5)
-                continue
-            if state == "done":
-                jsonl_url = ((job_result_data.get("data") or {}).get("resultUrl") or {}).get("jsonUrl")
-                break
-            if state == "failed":
-                error_msg = ((job_result_data.get("data") or {}).get("errorMsg")) or "任务失败"
-                raise Exception(f"任务失败: {error_msg}")
-            time.sleep(5)
-        if not jsonl_url:
-            raise Exception("未获取到结果下载地址")
-        jsonl_response = self.http_client.request("GET", jsonl_url)
-        if jsonl_response['status_code'] != 200:
-            raise Exception(f"下载结果失败 (状态码: {jsonl_response['status_code']}): {jsonl_response['text']}")
-        lines = jsonl_response.get("text", "").splitlines()
-        layout_results = []
-        ocr_results = []
-        for line in lines:
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                item = json.loads(line)
-            except Exception:
-                continue
-            result = item.get("result") or {}
-            if isinstance(result, dict):
-                lr = result.get("layoutParsingResults")
-                if isinstance(lr, list):
-                    layout_results.extend(lr)
-                orr = result.get("ocrResults")
-                if isinstance(orr, list):
-                    ocr_results.extend(orr)
-        result_payload = {"errorCode": 0, "result": {}}
-        if layout_results:
-            result_payload["result"]["layoutParsingResults"] = layout_results
-        if ocr_results:
-            result_payload["result"]["ocrResults"] = ocr_results
-        return json.dumps(result_payload, ensure_ascii=False)
 
     def _send_glm_ocr_request(self, image_base64):
         api_base = self.provider.api_base or self.provider.get_default_api_base()
@@ -2672,6 +2713,12 @@ class Api:
             "ar": "ar",
         }
         mineru_language = lang_map.get(local_lang, "ch")
+        is_ocr_flag = True
+        try:
+            if str(ext).lower() == "pdf":
+                is_ocr_flag = False
+        except Exception:
+            pass
         create_payload = {
             "enable_formula": True,
             "enable_table": True,
@@ -2679,7 +2726,7 @@ class Api:
             "files": [{
                 "name": file_name,
                 "data_id": data_id,
-                "is_ocr": True if str(model_version).lower() == "pipeline" else False,
+                "is_ocr": is_ocr_flag,
             }],
             "model_version": model_version,
         }
@@ -2773,27 +2820,71 @@ class Api:
 
             data = poll_data.get("data") if isinstance(poll_data, dict) else None
             if isinstance(data, dict):
+                extract_result = data.get("extract_result") or data.get("extractResult")
+                if isinstance(extract_result, list) and extract_result:
+                    item = extract_result[0]
+                    if isinstance(item, dict):
+                        state = item.get("state")
+                        if state == "done":
+                            full_zip_url = item.get("full_zip_url") or item.get("fullZipUrl")
+                            if isinstance(full_zip_url, str) and full_zip_url.strip():
+                                zip_resp = self.http_client.get_bytes(full_zip_url.strip(), headers=None)
+                                if not isinstance(zip_resp, dict) or zip_resp.get("status_code") != 200:
+                                    raise Exception(f"MinerU 下载结果失败 (状态码: {zip_resp.get('status_code') if isinstance(zip_resp, dict) else None})")
+                                zip_bytes = zip_resp.get("data", b"")
+                                md_text = self._mineru_extract_markdown_from_zip(zip_bytes)
+                                if isinstance(md_text, str) and md_text.strip():
+                                    md_text = remove_image_tags(md_text)
+                                    md_text = re.sub(r"!\[[^\]]*?\]\([^\)]*?\)", "", md_text)
+                                    md_text = re.sub(r"\n{3,}", "\n\n", md_text).strip()
+                                    return md_text
+                                raise Exception("MinerU 解析结果中未找到 full.md")
+                        if state == "failed":
+                            err_msg = item.get("err_msg") or item.get("errMsg") or ""
+                            raise Exception(f"MinerU 解析失败: {err_msg or last_text}")
+                        time.sleep(0.8)
+                        continue
+
                 results = data.get("results")
                 if isinstance(results, list) and results:
                     first = results[0]
-                    if isinstance(first, dict):
-                        if isinstance(first.get("md_content"), str) and first["md_content"].strip():
-                            return json.dumps(poll_data, ensure_ascii=False)
-                total_files = data.get("total_files") or data.get("totalFiles")
-                successful_files = data.get("successful_files") or data.get("successfulFiles")
-                failed_files = data.get("failed_files") or data.get("failedFiles")
-                if failed_files and int(failed_files) > 0:
-                    return json.dumps(poll_data, ensure_ascii=False)
-                if total_files is not None and successful_files is not None:
-                    try:
-                        if int(successful_files) >= int(total_files) and int(total_files) > 0:
-                            return json.dumps(poll_data, ensure_ascii=False)
-                    except Exception:
-                        pass
+                    if isinstance(first, dict) and isinstance(first.get("md_content"), str) and first["md_content"].strip():
+                        md_text = first["md_content"]
+                        md_text = remove_image_tags(md_text)
+                        md_text = re.sub(r"!\[[^\]]*?\]\([^\)]*?\)", "", md_text)
+                        md_text = re.sub(r"\n{3,}", "\n\n", md_text).strip()
+                        return md_text
 
             time.sleep(0.8)
 
         raise Exception(f"MinerU 解析超时（{max_wait}s）: {last_text[:500]}")
+
+    def _mineru_extract_markdown_from_zip(self, zip_bytes):
+        import zipfile
+        if not isinstance(zip_bytes, (bytes, bytearray)) or not zip_bytes:
+            return ""
+        with zipfile.ZipFile(BytesIO(zip_bytes)) as zf:
+            names = zf.namelist()
+            target = None
+            for n in names:
+                if n.endswith("/full.md") or n == "full.md":
+                    target = n
+                    break
+            if not target:
+                for n in names:
+                    if n.lower().endswith(".md"):
+                        target = n
+                        break
+            if not target:
+                return ""
+            data = zf.read(target)
+            try:
+                return data.decode("utf-8")
+            except Exception:
+                try:
+                    return data.decode("utf-8", errors="ignore")
+                except Exception:
+                    return ""
 
     def _mineru_guess_extension(self, image_bytes):
         try:
