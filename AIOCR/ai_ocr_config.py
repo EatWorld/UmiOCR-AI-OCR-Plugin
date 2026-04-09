@@ -416,10 +416,10 @@ globalOptions = {
         "toolTip": tr("请输入PaddleOCR的Access Token"),
     },
     "paddle_model": {
-        "title": tr("PaddleOCR 模型名称"),
-        "default": "PP-OCRv5",
+        "title": tr("PaddleOCR API URL"),
+        "default": "",
         "type": "text",
-        "toolTip": tr("请输入异步API支持的模型名称，如 PP-OCRv5"),
+        "toolTip": tr("请输入AI Studio任务中的完整API URL"),
     },
     # PaddleOCR-VL 在线配置
     "paddle_vl_api_key": {
@@ -429,10 +429,10 @@ globalOptions = {
         "toolTip": tr("请输入PaddleOCR-VL的Access Token"),
     },
     "paddle_vl_model": {
-        "title": tr("PaddleOCR-VL 模型名称"),
-        "default": "PaddleOCR-VL",
+        "title": tr("PaddleOCR-VL API URL"),
+        "default": "",
         "type": "text",
-        "toolTip": tr("请输入异步API支持的模型名称，如 PaddleOCR-VL"),
+        "toolTip": tr("请输入PaddleOCR-VL的完整API URL，如 /layout-parsing"),
     },
     "paddle_vl_15_api_key": {
         "title": tr("PaddleOCR-VL-1.5 Token"),
@@ -441,10 +441,10 @@ globalOptions = {
         "toolTip": tr("请输入PaddleOCR-VL-1.5的Access Token"),
     },
     "paddle_vl_15_model": {
-        "title": tr("PaddleOCR-VL-1.5 模型名称"),
-        "default": "PaddleOCR-VL-1.5",
+        "title": tr("PaddleOCR-VL-1.5 API URL"),
+        "default": "",
         "type": "text",
-        "toolTip": tr("请输入异步API支持的模型名称，如 PaddleOCR-VL-1.5"),
+        "toolTip": tr("请输入PaddleOCR-VL-1.5的完整API URL（含 https://...），如 https://.../layout-parsing"),
     },
     # PP-StructureV3 在线配置
     "pp_structure_v3_api_key": {
@@ -454,10 +454,10 @@ globalOptions = {
         "toolTip": tr("请输入PP-StructureV3的Access Token"),
     },
     "pp_structure_v3_model": {
-        "title": tr("PP-StructureV3 模型名称"),
-        "default": "PP-StructureV3",
+        "title": tr("PP-StructureV3 API URL"),
+        "default": "",
         "type": "text",
-        "toolTip": tr("请输入异步API支持的模型名称，如 PP-StructureV3"),
+        "toolTip": tr("请输入PP-StructureV3的完整API URL，访问 https://aistudio.baidu.com/paddleocr/task 获取"),
     },
 
     # PaddleOCR系列并发数配置
