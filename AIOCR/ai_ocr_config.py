@@ -37,6 +37,10 @@ PROVIDER_CONFIGS = {
         "api_base": "https://open.bigmodel.cn/api/paas/v4",
         "model": "",  # 用户自定义
     },
+    "glm_ocr": {
+        "api_base": "https://open.bigmodel.cn/api/paas/v4",
+        "model": "glm-ocr",
+    },
     "alibaba": {
         "api_base": "https://dashscope.aliyuncs.com/compatible-mode/v1",
         "model": "",  # 用户自定义
@@ -81,6 +85,10 @@ PROVIDER_CONFIGS = {
     "pp_structure_v3": {
         "api_base": "",
         "model": "",
+    },
+    "mineru": {
+        "api_base": "https://mineru.net/api/v4",
+        "model": "vlm",
     },
 }
 
@@ -133,12 +141,14 @@ globalOptions = {
             ["doubao", "豆包 (Doubao)"],
             ["alibaba", "阿里云百炼 (Alibaba)"],
             ["zhipu", "智谱AI (Z.AI)"],
+            ["glm_ocr", "GLM-OCR"],
             ["ollama", "Ollama (本地)"],
             ["groq", "Groq"],
             ["infinigence", "无问芯穷 (Infinigence)"],
             ["mistral", "Mistral AI"],
             ["modelscope", "魔搭 (ModelScope)"],  # 新增：魔搭选项
             ["intern", "浦源书生 (Intern)"],
+            ["mineru", "MinerU"],
             ["paddle", "PaddleOCR (在线)"],
             ["paddle_vl", "PaddleOCR-VL (在线)"],
             ["paddle_vl_15", "PaddleOCR-VL-1.5 (在线)"],
@@ -268,6 +278,18 @@ globalOptions = {
         "type": "text",
         "toolTip": tr("智谱AI模型名称，如：glm-4v-flash, glm-4v"),
     },
+    "glm_ocr_api_key": {
+        "title": tr("GLM-OCR API密钥"),
+        "default": "",
+        "type": "text",
+        "toolTip": tr("请输入GLM-OCR的API密钥"),
+    },
+    "glm_ocr_model": {
+        "title": tr("GLM-OCR 模型"),
+        "default": "glm-ocr",
+        "type": "text",
+        "toolTip": tr("GLM-OCR模型名称，如：glm-ocr"),
+    },
 
     # Ollama配置（本地）
     "ollama_api_key": {
@@ -364,6 +386,26 @@ globalOptions = {
         "default": "internvl3.5-241b-a28b",
         "type": "text",
         "toolTip": tr("浦源书生多模态模型，如：internvl3.5-241b-a28b"),
+    },
+
+    "mineru_api_key": {
+        "title": tr("MinerU API密钥"),
+        "default": "",
+        "type": "text",
+        "toolTip": tr("请输入MinerU平台的API Token（请求头 Authorization: Bearer <token>）"),
+    },
+    "mineru_model": {
+        "title": tr("MinerU 模型版本"),
+        "default": "vlm",
+        "type": "text",
+        "toolTip": tr("MinerU 的 model_version，如：vlm、pipeline、MinerU-HTML"),
+    },
+    "mineru_user_token": {
+        "title": tr("MinerU 用户标识 (可选)"),
+        "default": "",
+        "type": "text",
+        "toolTip": tr("部分 PRO 接口要求请求头额外携带 token 字段，用于额度管理"),
+        "advanced": True,
     },
 
     # PaddleOCR 在线配置
