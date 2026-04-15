@@ -24,6 +24,12 @@ def remove_image_tags(text):
     pattern = r'<[^>]+>'
     return re.sub(pattern, '', text)
 
+def remove_hash_symbol(text):
+    """移除文本中的#符号（用于统一清理OCR结果显示）"""
+    if not isinstance(text, str):
+        return text
+    return text.replace("#", "")
+
 # Provider基类
 class BaseProvider:
     """AI OCR服务提供商基类"""
@@ -175,9 +181,6 @@ class SiliconFlowProvider(BaseProvider):
                 }
             ],
             "max_tokens": 4000,
-            "thinking": {
-                "type": "disabled"
-            }
         }
         
     def parse_response(self, response_text):
@@ -313,7 +316,7 @@ class DoubaoProvider(BaseProvider):
                     ]
                 }
             ],
-            "max_tokens": 5000,
+            "max_tokens": 6000,
             # 添加思考模式配置，默认禁用深度思考
             "thinking": {
                 "type": "disabled"
@@ -640,7 +643,7 @@ class ModelScopeProvider(BaseProvider):
                     ]
                 }
             ],
-            "max_tokens": 4000,
+            "max_tokens": 6000,
             "thinking": {
                 "type": "disabled"
             }
@@ -893,7 +896,7 @@ class MistralProvider(BaseProvider):
                     ]
                 }
             ],
-            "max_tokens": 5000,
+            "max_tokens": 6000,
             "stream": False  # 关键修复：明确禁用流式响应
         }
 
@@ -961,7 +964,7 @@ class InternProvider(BaseProvider):
                     ]
                 }
             ],
-            "max_tokens": 5000,
+            "max_tokens": 6000,
             "stream": False,  # 禁用流式响应
             "thinking_mode": False
         }
@@ -2388,24 +2391,27 @@ class Api:
     def runBase64(self, imageBase64):
         """处理base64图片"""
         try:
+            result = None
             # 根据识别策略选择流程（不再需要启用开关）
             if hasattr(self, 'local_config'):
                 strategy = self.local_config.get('dual_strategy', 'ai_high_precision_with_coordinates')
                 # 含位置版：Paddle检测框 + AI纠错文本
                 if strategy in ('ai_high_precision_with_coordinates', 'paddle_first_correction'):
-                    return self._run_paddle_first_correction(imageBase64)
+                    result = self._run_paddle_first_correction(imageBase64)
                 # 纯文本：整图AI识别（预处理后）
                 elif strategy == 'ai_high_precision_text_only':
                     local = getattr(self, 'local_config', {})
                     processed_base64 = self._preprocess_image(imageBase64)
-                    return self._run_ocr(processed_base64, {"output_format": "text_only", "language": local.get("language", "auto")})
+                    result = self._run_ocr(processed_base64, {"output_format": "text_only", "language": local.get("language", "auto")})
                 # 兜底：未知或旧值（如 'ai_first'）均按含位置版处理
                 else:
-                    return self._run_paddle_first_correction(imageBase64)
-            # 预处理图像
-            processed_base64 = self._preprocess_image(imageBase64)
-            # 执行OCR
-            return self._run_ocr(processed_base64, self.local_config)
+                    result = self._run_paddle_first_correction(imageBase64)
+            else:
+                # 预处理图像
+                processed_base64 = self._preprocess_image(imageBase64)
+                # 执行OCR
+                result = self._run_ocr(processed_base64, self.local_config)
+            return self._sanitize_ocr_result(result)
         except Exception as e:
             return self._create_error_result(f"OCR处理失败: {str(e)}")
     
@@ -2593,6 +2599,67 @@ class Api:
         except Exception:
             pass
         
+        # Paddle平台配置覆盖 - 根据不同平台读取对应参数
+        if provider_name in ("paddle", "paddle_vl", "paddle_vl_15", "pp_structure_v3"):
+            try:
+                local_cfg = getattr(self, "local_config", {}) or {}
+                # 通用参数：PP-OCRv5/VL/VL-1.5/V3都支持
+                common_keys = [
+                    ("useDocUnwarping", "paddle_use_doc_unwarping"),
+                    ("useDocOrientationClassify", "paddle_use_doc_orientation_classify"),
+                ]
+                for api_key, cfg_key in common_keys:
+                    if cfg_key in local_cfg:
+                        payload[api_key] = local_cfg[cfg_key]
+                
+                # PP-OCRv5 (paddle) 专属参数
+                if provider_name == "paddle":
+                    paddle_keys = [
+                        ("useTextlineOrientation", "paddle_use_textline_orientation"),
+                    ]
+                    for api_key, cfg_key in paddle_keys:
+                        if cfg_key in local_cfg:
+                            payload[api_key] = local_cfg[cfg_key]
+                
+                # PaddleOCR-VL (paddle_vl) 专属参数
+                elif provider_name == "paddle_vl":
+                    paddle_keys = [
+                        ("useChartRecognition", "paddle_use_chart_recognition"),
+                        ("prettifyMarkdown", "paddle_prettify_markdown"),
+                    ]
+                    for api_key, cfg_key in paddle_keys:
+                        if cfg_key in local_cfg:
+                            payload[api_key] = local_cfg[cfg_key]
+                
+                # PaddleOCR-VL-1.5 (paddle_vl_15) 专属参数
+                elif provider_name == "paddle_vl_15":
+                    paddle_keys = [
+                        ("useLayoutDetection", "paddle_use_layout_detection"),
+                        ("useChartRecognition", "paddle_use_chart_recognition"),
+                        ("prettifyMarkdown", "paddle_prettify_markdown"),
+                        ("repetitionPenalty", "paddle_repetition_penalty"),
+                        ("temperature", "paddle_temperature"),
+                        ("relevelTitles", "paddle_relevel_titles"),
+                        ("mergeTables", "paddle_merge_tables"),
+                    ]
+                    for api_key, cfg_key in paddle_keys:
+                        if cfg_key in local_cfg:
+                            payload[api_key] = local_cfg[cfg_key]
+                
+                # PP-StructureV3 (pp_structure_v3) 专属参数
+                elif provider_name == "pp_structure_v3":
+                    paddle_keys = [
+                        ("useTextlineOrientation", "paddle_use_textline_orientation"),
+                        ("useChartRecognition", "paddle_use_chart_recognition"),
+                        ("useFormulaRecognition", "paddle_use_formula_recognition"),
+                        ("useSealRecognition", "paddle_use_seal_recognition"),
+                    ]
+                    for api_key, cfg_key in paddle_keys:
+                        if cfg_key in local_cfg:
+                            payload[api_key] = local_cfg[cfg_key]
+            except Exception:
+                pass
+        
         response = self.http_client.post(url, headers, json.dumps(payload))
         
         if response['status_code'] != 200:
@@ -2719,9 +2786,17 @@ class Api:
                 is_ocr_flag = False
         except Exception:
             pass
+        enable_formula = True
+        enable_table = True
+        try:
+            local_cfg = getattr(self, "local_config", {}) or {}
+            enable_formula = local_cfg.get("mineru_enable_formula", True)
+            enable_table = local_cfg.get("mineru_enable_table", True)
+        except Exception:
+            pass
         create_payload = {
-            "enable_formula": True,
-            "enable_table": True,
+            "enable_formula": enable_formula,
+            "enable_table": enable_table,
             "language": mineru_language,
             "files": [{
                 "name": file_name,
@@ -3262,4 +3337,33 @@ class Api:
     def _create_error_result(self, error_msg):
         """创建错误结果"""
         return {"code": 102, "data": f"[Error] {error_msg}"}
+
+    def _sanitize_ocr_result(self, result):
+        """统一清理OCR返回结果中的文本内容，不改变原有返回结构。"""
+        if not isinstance(result, dict):
+            return result
+        if "data" not in result:
+            return result
+
+        data = result.get("data")
+        if isinstance(data, str):
+            result["data"] = remove_hash_symbol(data)
+            return result
+
+        if isinstance(data, list):
+            sanitized = []
+            for item in data:
+                if isinstance(item, dict):
+                    new_item = dict(item)
+                    if "text" in new_item:
+                        new_item["text"] = remove_hash_symbol(new_item.get("text", ""))
+                    sanitized.append(new_item)
+                elif isinstance(item, str):
+                    sanitized.append(remove_hash_symbol(item))
+                else:
+                    sanitized.append(item)
+            result["data"] = sanitized
+            return result
+
+        return result
 
