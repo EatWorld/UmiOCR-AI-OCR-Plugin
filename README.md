@@ -27,11 +27,11 @@
 | 服务商 | 建议模型 | 特点 |
 |--------|----------|------|
 | **硅基流动 (SiliconFlow)** | Qwen/Qwen3-VL-235B-A22B-Instruct （**强烈推荐**）或 PaddlePaddle/PaddleOCR-VL-1.5 | 开源模型多，价格低，速度快，**中文识别准确率超高**，**强烈推荐** |
-| **阿里云百炼 (Alibaba)** | Qwen/Qwen3-VL-235B-A22B-Instruct （**强烈推荐**）| **顶尖OCR模型**，中外文识别**极其优秀**，**强烈推荐**  |
+| **阿里云百炼 (Alibaba)** | Qwen/Qwen3-VL-235B-A22B-Instruct （**强烈推荐**）/qwen3.6-plus| **顶尖OCR模型**，中外文识别**极其优秀**，**强烈推荐**  |
 | **智谱AI (ZhipuAI)** | GLM-4.6V/GLM-OCR | 国产大模型，多模态能力强，**相当优秀** |
-| **豆包(Doubao)** | doubao-seed-1-8-251228 | 中文优化效果好，性价比高 |
-| **OpenAI** | gpt-5-mini | 高精度，多语言支持 |
-| **Google Gemini** | gemini-3.0-flash | 速度快，成本低 |
+| **豆包(Doubao)** | doubao-seed-2-0-pro/doubao-seed-1-8-251228 | 中文优化效果好，性价比高 |
+| **OpenAI** | gpt-5.4 | 高精度，多语言支持 |
+| **Google Gemini** | gemini-3.0-pro/gemini-3.0-flash | 速度快，成本低 |
 | **xAI Grok** | grok-4 | 创新模型，独特优势 |
 | **OpenRouter** | qwen/qwen2.5-vl-72b-instruct:free | 统一接口，模型丰富 |
 | **Groq** | meta-llama/llama-4-maverick-17b-128e-instruct | 高性能推理，速度极快 |
@@ -40,7 +40,7 @@
 | **Mistral AI** | mistral-ocr-latest | 欧洲AI公司，视觉模型优秀，免费使用|
 | **浦源书生 (Intern)** | intern-s1-pro/internvl3.5-241b-a28b | 学术界AI平台，多模态能力强，免费使用，其中intern-s1-pro为**优秀OCR模型**，中文识别**非常优秀**，**十分推荐**|
 | **百度PaddleOCR系列** | V3/V5/VL/VL 1.5 | 百度飞桨平台，支持多语言识别，高效准确解析文档内容，其中PaddleOCR-VL-1.5 为**顶尖OCR模型**，中外文识别**极其优秀**，**非常推荐**|
-| **MinerU系列** | pipeline（默认）/vlm(推荐) /MinerU-HTML/MinerU 2.5系列（官网暂未上线，上线后支持直接调用） | 行业领先的文档解析服务商，尤其擅长处理非标准和复杂文档，拥有**顶尖OCR模型**，中外文识别**极其优秀**，**非常推荐**|
+| **MinerU系列** | pipeline(默认)/vlm(推荐) /MinerU-HTML/MinerU 2.5系列（官网暂未上线，上线后支持直接调用） | 行业领先的文档解析服务商，尤其擅长处理非标准和复杂文档，拥有**顶尖OCR模型**，中外文识别**极其优秀**，**非常推荐**|
 
 ### 🏠 本地服务商（离线识别）
 | 服务商 | 建议模型 | 特点 |
@@ -130,7 +130,7 @@
 5. 设置参数：
    - 裁剪边缘补白 ： 2 px
    - 最大识别框数 ： 30–100 （按图片复杂度与成本权衡）
-   - 并发识别数 ： 3–6 （视本机与服务商速率）
+   - 并发识别数 ： 3–6 （视本机与服务商速率）,Paddle系列和MinerU系列**上限为2**
    - 最小框面积 ： 0 或 100–500 px^2 （有小字场景建议 0 ）
 <img width="598" height="789" alt="image" src="https://github.com/user-attachments/assets/17dcfc1a-4c4b-40a8-b686-ece5ecafe19a" />
 
@@ -226,7 +226,7 @@
 
 ### 百度飞桨OCR
 1. 访问 PaddleOCR官网：(https://aistudio.baidu.com/paddleocr)
-2. 注册账号并免费获取**TOKEN**和**模型名称**，如 PP-OCRv5 / PaddleOCR-VL / PaddleOCR-VL-1.5 / PP-StructureV3
+2. 注册账号并免费获取**TOKEN**和**API URL**，如 PP-OCRv5 / PaddleOCR-VL / PaddleOCR-VL-1.5 / PP-StructureV3
 3. 每位用户每日对同一模型的解析上限为3000页，超出将返回429错误；可自行申请更多页数
 
 ### MinerU
@@ -302,6 +302,7 @@
 
 
 ## 📝 版本历史
+- **v2.9.3**：增加Paddle系列和MinerU系列功能开关，提供更强大的识别功能；以Markdown为输出格式（Paddle系列和MinerU系列）时，默认去除所有的结果中的“#”；修正文档说明。
 - **v2.9.2**：增加GLM-OCR和MinerU；默认关闭所有平台的“深度思考”功能；略微优化了识别结果与文字不对齐的表现。
 - **v2.9.1**：增加PaddleOCR-VL-1.5，效果更好，默认关闭版面识别，默认开启Markdown美化，输出文本更美观。
 - **v2.9.0**：增加PP-StructureV3功能，对复杂版面内容解析更精准。默认开启版面识别，默认开启Markdown美化，输出文本更美观。
