@@ -623,4 +623,80 @@ localOptions = {
         "isInt": True,
         "toolTip": tr("对检测框四周增加少量像素，避免裁剪过紧影响识别。"),
     },
+    
+    "mineru_enable_table": {
+        "title": tr("MinerU 表格识别"),
+        "default": True,
+        "toolTip": tr("【仅MinerU平台】启用表格识别功能。"),
+    },
+    "mineru_enable_formula": {
+        "title": tr("MinerU 公式识别"),
+        "default": True,
+        "toolTip": tr("【仅MinerU平台】启用公式识别功能。"),
+    },
+    
+    "paddle_use_doc_unwarping": {
+        "title": tr("文档扭曲矫正"),
+        "default": False,
+        "toolTip": tr("【PP-OCRv5/VL/VL-1.5/V3通用】自动矫正扭曲图片（褶皱、倾斜等）。"),
+    },
+    "paddle_use_doc_orientation_classify": {
+        "title": tr("文档方向分类"),
+        "default": False,
+        "toolTip": tr("【PP-OCRv5/VL/VL-1.5/V3通用】自动识别并矫正0°/90°/180°/270°的图片方向。"),
+    },
+    "paddle_use_textline_orientation": {
+        "title": tr("文本行方向矫正"),
+        "default": False,
+        "toolTip": tr("【仅PP-OCRv5/V3】自动识别和矫正0°/180°的文本行方向。"),
+    },
+    "paddle_use_layout_detection": {
+        "title": tr("版面区域检测"),
+        "default": False,
+        "toolTip": tr("【仅VL-1.5】自动检测文档中不同区域并排序。"),
+    },
+    "paddle_use_chart_recognition": {
+        "title": tr("图表识别"),
+        "default": False,
+        "toolTip": tr("【VL/VL-1.5/V3】自动解析图表（柱状图、饼图等）并转换为表格。"),
+    },
+    "paddle_use_formula_recognition": {
+        "title": tr("公式识别"),
+        "default": False,
+        "toolTip": tr("【仅V3】自动识别文档中的公式并转换为LaTeX格式。"),
+    },
+    "paddle_use_seal_recognition": {
+        "title": tr("印章识别"),
+        "default": False,
+        "toolTip": tr("【仅VL-1.5/V3】自动识别文档中的印章内容。"),
+    },
+    "paddle_prettify_markdown": {
+        "title": tr("Markdown美化"),
+        "default": True,
+        "toolTip": tr("【VL/VL-1.5】启用Markdown格式美化输出。"),
+    },
+    "paddle_repetition_penalty": {
+        "title": tr("重复惩罚参数"),
+        "default": 1.0,
+        "min": 1.0,
+        "max": 2.0,
+        "toolTip": tr("【仅VL-1.5】重复惩罚参数(1.0-2.0)，用于减少重复输出。"),
+    },
+    "paddle_temperature": {
+        "title": tr("温度参数"),
+        "default": 0.1,
+        "min": 0.0,
+        "max": 1.0,
+        "toolTip": tr("【仅VL-1.5】温度参数(0.0-1.0)，控制输出的随机性。"),
+    },
+    "paddle_relevel_titles": {
+        "title": tr("标题重分级"),
+        "default": False,
+        "toolTip": tr("【仅VL-1.5】启用标题重分级功能，自动调整标题层级。"),
+    },
+    "paddle_merge_tables": {
+        "title": tr("表格合并"),
+        "default": False,
+        "toolTip": tr("【仅VL-1.5】启用表格合并功能，合并跨页或分割的表格。"),
+    },
 }
