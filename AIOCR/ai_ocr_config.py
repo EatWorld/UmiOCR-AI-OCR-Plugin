@@ -49,6 +49,10 @@ PROVIDER_CONFIGS = {
         "api_base": "http://localhost:11434/api",
         "model": "",  # 用户自定义
     },
+    "lmstudio": {
+        "api_base": "http://localhost:1234/v1",
+        "model": "",  # 用户自定义
+    },
     "groq": {
         "api_base": "https://api.groq.com/openai/v1",
         "model": "",  # 用户自定义
@@ -64,7 +68,11 @@ PROVIDER_CONFIGS = {
     # 新增：魔搭配置
     "modelscope": {
         "api_base": "https://api-inference.modelscope.cn/v1",
-        "model": "",  # 用户自定义
+        "model": "",
+    },
+    "mimo": {
+        "api_base": "https://api.xiaomimimo.com/v1",
+        "model": "mimo-v2.5",
     },
     "intern": {  # 浦源书生
         "api_base": "https://chat.intern-ai.org.cn/api/v1",
@@ -128,6 +136,19 @@ globalOptions = {
     "title": tr("AI OCR 设置"),
     "type": "group",
 
+    "a_prompt_text_only": {
+        "title": tr("纯文字识别 Prompt"),
+        "default": "识别图片中的文字，语言：{language}。保持原有格式，直接返回文字内容。",
+        "type": "text",
+        "toolTip": tr("纯文字识别模式的提示词模板，{language}会被替换为当前识别语言。留空则使用默认模板。"),
+    },
+    "a_prompt_with_coordinates": {
+        "title": tr("含坐标识别 Prompt"),
+        "default": '识别图片文字并返回坐标，语言：{language}\n输出JSON格式：{{"texts": [{{"text": "文字内容", "box": [[x1,y1],[x2,y2],[x3,y3],[x4,y4]]}}]}}\n坐标为像素位置，左上角为原点。直接返回JSON，无其他内容。',
+        "type": "text",
+        "toolTip": tr("含坐标识别模式的提示词模板，{language}会被替换为当前识别语言。留空则使用默认模板。"),
+    },
+
     # 使用 a_ 前缀确保基础设置排在最前面
     "a_provider": {
         "title": tr("当前AI服务商"),
@@ -143,10 +164,12 @@ globalOptions = {
             ["zhipu", "智谱AI (Z.AI)"],
             ["glm_ocr", "GLM-OCR"],
             ["ollama", "Ollama (本地)"],
+            ["lmstudio", "LM Studio (本地)"],
             ["groq", "Groq"],
             ["infinigence", "无问芯穷 (Infinigence)"],
             ["mistral", "Mistral AI"],
-            ["modelscope", "魔搭 (ModelScope)"],  # 新增：魔搭选项
+            ["modelscope", "魔搭 (ModelScope)"],
+            ["mimo", "小米MiMo"],
             ["intern", "浦源书生 (Intern)"],
             ["mineru", "MinerU"],
             ["paddle", "PaddleOCR (在线)"],
@@ -318,6 +341,12 @@ globalOptions = {
         "type": "text",
         "toolTip": tr("LM Studio本地视觉模型，如：llava:latest"),
     },
+    "lmstudio_api_base": {
+        "title": tr("LM Studio API地址"),
+        "default": "http://localhost:1234/v1",
+        "type": "text",
+        "toolTip": tr("LM Studio本地服务的API地址，默认为 http://localhost:1234/v1"),
+    },
 
     # Groq配置
     "groq_api_key": {
@@ -374,7 +403,26 @@ globalOptions = {
         "type": "text",
         "toolTip": tr("魔搭模型ID，如：Qwen/Qwen-VL-Plus, Qwen/QVQ-72B-Preview"),
     },
-    # 新增：浦源书生配置
+    # 小米MiMo配置
+    "mimo_api_key": {
+        "title": tr("小米MiMo API密钥"),
+        "default": "",
+        "type": "text",
+        "toolTip": tr("请输入小米MiMo平台的API密钥"),
+    },
+    "mimo_model": {
+        "title": tr("小米MiMo 模型"),
+        "default": "mimo-v2.5",
+        "type": "text",
+        "toolTip": tr("MiMo视觉模型名称，如：mimo-v2.5, mimo-v2-omni"),
+    },
+    "mimo_api_base": {
+        "title": tr("小米MiMo API地址"),
+        "default": "https://api.xiaomimimo.com/v1",
+        "type": "text",
+        "toolTip": tr("小米MiMo平台的API地址。默认：https://api.xiaomimimo.com/v1 ；如购买了Code套餐，请使用专属地址：https://token-plan-cn.xiaomimimo.com/v1"),
+    },
+    # 浦源书生配置
     "intern_api_key": {
         "title": tr("浦源书生 API密钥"),
         "default": "",
