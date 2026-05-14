@@ -610,6 +610,60 @@ class GLMOCRProvider(BaseProvider):
             return [[p[0], p[1]] for p in pts]
         return None
 
+class MiMoProvider(BaseProvider):
+    """小米MiMo服务提供商"""
+
+    def get_default_api_base(self):
+        return "https://api.xiaomimimo.com/v1"
+
+    def get_default_model(self):
+        return "mimo-v2.5"
+
+    def build_headers(self):
+        return {
+            "Content-Type": "application/json",
+            "api-key": self.api_key
+        }
+
+    def build_payload(self, image_base64, prompt):
+        return {
+            "model": self.model or self.get_default_model(),
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": prompt},
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/jpeg;base64,{image_base64}"
+                            }
+                        }
+                    ]
+                }
+            ],
+            "max_completion_tokens": 4000
+        }
+
+    def parse_response(self, response_text):
+        try:
+            data = json.loads(response_text)
+            if "error" in data:
+                error_msg = data["error"].get("message", str(data["error"]))
+                raise Exception(f"API错误: {error_msg}")
+            if "choices" in data and len(data["choices"]) > 0:
+                content = data["choices"][0]["message"]["content"]
+                return content
+            else:
+                return None
+        except json.JSONDecodeError:
+            raise Exception(f"解析MiMo响应失败: 无效的JSON格式。响应内容: {response_text[:500]}")
+        except Exception as e:
+            if "API错误" in str(e) or "解析MiMo" in str(e):
+                raise
+            raise Exception(f"解析MiMo响应失败: {str(e)}")
+
+
 # 新增：魔搭 Provider
 class ModelScopeProvider(BaseProvider):
     """魔搭服务提供商"""
@@ -1314,8 +1368,9 @@ class ProviderFactory:
             "groq": GroqProvider,
             "infinigence": InfinigenceProvider,
             "mistral": MistralProvider,
-            "modelscope": ModelScopeProvider,  # 新增：魔搭 Provider
-            "intern": InternProvider,  # 新增：书生AI Provider
+            "modelscope": ModelScopeProvider,
+            "mimo": MiMoProvider,
+            "intern": InternProvider,
             "mineru": MinerUProvider,
             "paddle": PaddleProvider,  # 新增：PaddleOCR Provider
             "paddle_vl": PaddleVLProvider,  # 新增：PaddleOCR-VL Provider
@@ -2508,7 +2563,6 @@ class Api:
         language = config.get("language", "auto")
         output_format = config.get("output_format", "text_only")
         
-        # 语言映射
         lang_map = {
             "auto": "自动检测语言",
             "zh": "中文",
@@ -2524,12 +2578,15 @@ class Api:
         
         lang_instruction = lang_map.get(language, "自动检测语言")
         
+        default_text_only = "识别图片中的文字，语言：{language}。保持原有格式，直接返回文字内容。"
+        default_with_coordinates = '识别图片文字并返回坐标，语言：{language}\n输出JSON格式：{{"texts": [{{"text": "文字内容", "box": [[x1,y1],[x2,y2],[x3,y3],[x4,y4]]}}]}}\n坐标为像素位置，左上角为原点。直接返回JSON，无其他内容。'
+        
         if output_format == "with_coordinates":
-            prompt = f"""识别图片文字并返回坐标，语言：{lang_instruction}
-输出JSON格式：{{"texts": [{{"text": "文字内容", "box": [[x1,y1],[x2,y2],[x3,y3],[x4,y4]]}}]}}
-坐标为像素位置，左上角为原点。直接返回JSON，无其他内容。"""
+            template = self.global_config.get("a_prompt_with_coordinates", "").strip()
+            prompt = template.replace("{language}", lang_instruction) if template else default_with_coordinates.replace("{language}", lang_instruction)
         else:
-            prompt = f"""识别图片中的文字，语言：{lang_instruction}。保持原有格式，直接返回文字内容。"""
+            template = self.global_config.get("a_prompt_text_only", "").strip()
+            prompt = template.replace("{language}", lang_instruction) if template else default_text_only.replace("{language}", lang_instruction)
         if language in ("auto", "zh"):
             prompt += "\n严格禁止对中文进行繁体/简体转换、全角/半角转换、字符归一化；混合繁简时保持混合状态。逐字抄写图像字符，不要重写。示例：不要把 '台灣里体干' 改为 '臺灣裏體幹'，也不要相反。"
         
