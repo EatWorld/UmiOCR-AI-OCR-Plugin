@@ -1055,6 +1055,126 @@ class InternProvider(BaseProvider):
             raise Exception(f"解析书生AI响应失败: {str(e)}")
 
 
+# Kimi (月之暗面) Provider
+class KimiProvider(BaseProvider):
+    """Kimi (月之暗面) 服务提供商 - OpenAI兼容API"""
+
+    def get_default_api_base(self):
+        return "https://api.moonshot.cn/v1"
+
+    def get_default_model(self):
+        return "kimi-k2.6"
+
+    def build_headers(self):
+        return {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {self.api_key}"
+        }
+
+    def build_payload(self, image_base64, prompt):
+        return {
+            "model": self.model or self.get_default_model(),
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/jpeg;base64,{image_base64}"
+                            }
+                        },
+                        {"type": "text", "text": prompt},
+                    ]
+                }
+            ],
+            "max_tokens": 4096
+        }
+
+    def parse_response(self, response_text):
+        try:
+            if not response_text or not response_text.strip():
+                raise Exception("服务器返回了空响应")
+
+            data = json.loads(response_text)
+
+            if "error" in data:
+                error_msg = data["error"].get("message", str(data["error"]))
+                raise Exception(f"API错误: {error_msg}")
+
+            if "choices" in data and len(data["choices"]) > 0:
+                content = data["choices"][0]["message"]["content"]
+                return content
+            else:
+                return None
+        except json.JSONDecodeError:
+            raise Exception(f"解析Kimi响应失败: 无效的JSON格式。服务器返回内容: {response_text[:500]}")
+        except Exception as e:
+            raise Exception(f"解析Kimi响应失败: {str(e)}")
+
+
+# NVIDIA NIM Provider
+class NvidiaNIMProvider(BaseProvider):
+    """NVIDIA NIM服务提供商 - OpenAI兼容API，支持202异步轮询"""
+
+    def get_default_api_base(self):
+        return "https://integrate.api.nvidia.com/v1"
+
+    def get_default_model(self):
+        return "moonshotai/kimi-k2.6"
+
+    def build_headers(self):
+        return {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {self.api_key}",
+            "accept": "application/json",
+        }
+
+    def build_payload(self, image_base64, prompt):
+        return {
+            "model": self.model or self.get_default_model(),
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/jpeg;base64,{image_base64}"
+                            }
+                        },
+                        {"type": "text", "text": prompt},
+                    ]
+                }
+            ],
+            "max_tokens": 16384,
+            "temperature": 1,
+            "top_p": 0.95,
+            "stream": False,
+        }
+
+    def parse_response(self, response_text):
+        try:
+            if not response_text or not response_text.strip():
+                raise Exception("服务器返回了空响应")
+
+            data = json.loads(response_text)
+
+            if "error" in data:
+                error_msg = data["error"].get("message", str(data["error"]))
+                raise Exception(f"API错误: {error_msg}")
+
+            if "choices" in data and len(data["choices"]) > 0:
+                content = data["choices"][0]["message"]["content"]
+                return content
+            else:
+                return None
+        except json.JSONDecodeError:
+            raise Exception(f"解析NVIDIA NIM响应失败: 无效的JSON格式。服务器返回内容: {response_text[:500]}")
+        except Exception as e:
+            raise Exception(f"解析NVIDIA NIM响应失败: {str(e)}")
+
+
 class MinerUProvider(BaseProvider):
     def get_default_api_base(self):
         return "https://mineru.net/api/v4"
@@ -1111,43 +1231,28 @@ class MinerUProvider(BaseProvider):
             raise Exception(f"解析MinerU响应失败: {str(e)}")
 
 
-# PaddleOCR Provider (在线)
+# PaddleOCR Provider (在线 - 异步解析模式)
 class PaddleProvider(BaseProvider):
-    """PaddleOCR在线服务提供商"""
+    """PaddleOCR在线服务提供商 - 异步解析模式"""
     
     def get_default_api_base(self):
-        return "" 
+        return "https://paddleocr.aistudio-app.com"
 
     def get_default_model(self):
-        return "" 
+        return "PP-OCRv5"
 
     def build_headers(self):
         return {
-            "Authorization": f"token {self.api_key}",
-            "Content-Type": "application/json"
+            "Authorization": f"Bearer {self.api_key}",
         }
         
     def build_payload(self, image_base64, prompt):
-        # 构造 payload
-        required_payload = {
-            "file": image_base64,
-            "fileType": 1, # 1 for image
-        }
-        
-        optional_payload = {
-            "useDocOrientationClassify": False,
-            "useDocUnwarping": False,
-            "useTextlineOrientation": False,
-        }
-        
-        payload = {**required_payload, **optional_payload}
-        return payload
-        
+        return {}
+
     def parse_response(self, response_text):
         try:
             data = json.loads(response_text)
             
-            # 检查错误码
             if data.get("errorCode") != 0:
                 raise Exception(f"PaddleOCR API错误: {data.get('errorMsg')}")
                 
@@ -1164,6 +1269,14 @@ class PaddleProvider(BaseProvider):
                 pruned = res.get("prunedResult", {})
                 texts = self._extract_texts_recursive(pruned)
                 all_text.extend(texts)
+                rec_texts = res.get("rec_texts", [])
+                if isinstance(rec_texts, list):
+                    for t in rec_texts:
+                        if isinstance(t, str) and t.strip():
+                            all_text.append(t.strip())
+                text_val = res.get("text", "")
+                if isinstance(text_val, str) and text_val.strip():
+                    all_text.append(text_val.strip())
             
             if not all_text:
                 return f"提取文本为空。请截图反馈此信息。原始响应: {response_text[:1000]}"
@@ -1176,12 +1289,10 @@ class PaddleProvider(BaseProvider):
     def _extract_texts_recursive(self, data):
         texts = []
         if isinstance(data, dict):
-            # 尝试常见的文本字段名(字符串类型)
             for key in ["text", "rec_text", "transcription", "words"]:
                 if key in data and isinstance(data[key], str):
                     texts.append(data[key])
             
-            # 尝试列表类型的文本字段 (如 rec_texts)
             if "rec_texts" in data and isinstance(data["rec_texts"], list):
                 for item in data["rec_texts"]:
                     if isinstance(item, str):
@@ -1195,33 +1306,21 @@ class PaddleProvider(BaseProvider):
         return texts
 
 
-# PaddleOCR-VL Provider (在线)
+# PaddleOCR-VL Provider (在线 - 异步解析模式)
 class PaddleVLProvider(BaseProvider):
     def get_default_api_base(self):
-        return ""
+        return "https://paddleocr.aistudio-app.com"
 
     def get_default_model(self):
-        return ""
+        return "PaddleOCR-VL"
 
     def build_headers(self):
         return {
-            "Authorization": f"token {self.api_key}",
-            "Content-Type": "application/json"
+            "Authorization": f"Bearer {self.api_key}",
         }
 
     def build_payload(self, image_base64, prompt):
-        required_payload = {
-            "file": image_base64,
-            "fileType": 1,
-        }
-        optional_payload = {
-            "useDocOrientationClassify": False,
-            "useDocUnwarping": False,
-            "useChartRecognition": False,
-            "prettifyMarkdown": True,
-        }
-        payload = {**required_payload, **optional_payload}
-        return payload
+        return {}
 
     def parse_response(self, response_text):
         try:
@@ -1246,31 +1345,18 @@ class PaddleVLProvider(BaseProvider):
 
 class PaddleVL15Provider(BaseProvider):
     def get_default_api_base(self):
-        return ""
+        return "https://paddleocr.aistudio-app.com"
 
     def get_default_model(self):
-        return ""
+        return "PaddleOCR-VL-1.5"
 
     def build_headers(self):
         return {
-            "Authorization": f"token {self.api_key}",
-            "Content-Type": "application/json"
+            "Authorization": f"Bearer {self.api_key}",
         }
 
     def build_payload(self, image_base64, prompt):
-        required_payload = {
-            "file": image_base64,
-            "fileType": 1,
-        }
-        optional_payload = {
-            "useDocOrientationClassify": False,
-            "useDocUnwarping": False,
-            "useChartRecognition": False,
-            "useLayoutDetection": True,
-            "prettifyMarkdown": True,
-        }
-        payload = {**required_payload, **optional_payload}
-        return payload
+        return {}
 
     def parse_response(self, response_text):
         try:
@@ -1293,40 +1379,23 @@ class PaddleVL15Provider(BaseProvider):
             raise Exception(f"解析PaddleOCR-VL-1.5响应失败: {str(e)}")
 
 
-# PP-StructureV3 Provider (在线)
+# PP-StructureV3 Provider (在线 - 异步解析模式)
 class PPStructureV3Provider(BaseProvider):
-    """PP-StructureV3在线服务提供商 - 文档解析与智能文字识别"""
-    
+    """PP-StructureV3在线服务提供商 - 异步解析模式"""
+
     def get_default_api_base(self):
-        return ""
+        return "https://paddleocr.aistudio-app.com"
 
     def get_default_model(self):
-        return ""
+        return "PP-StructureV3"
 
     def build_headers(self):
         return {
-            "Authorization": f"token {self.api_key}",
-            "Content-Type": "application/json"
+            "Authorization": f"Bearer {self.api_key}",
         }
 
     def build_payload(self, image_base64, prompt):
-        required_payload = {
-            "file": image_base64,
-            "fileType": 1,
-        }
-        optional_payload = {
-            "useDocOrientationClassify": False,
-            "useDocUnwarping": False,
-            "useTextlineOrientation": True,
-            "useSealRecognition": False,
-            "useTableRecognition": True,
-            "useFormulaRecognition": True,
-            "useChartRecognition": False,
-            "useRegionDetection": True,
-            "visualize": False,
-        }
-        payload = {**required_payload, **optional_payload}
-        return payload
+        return {}
 
     def parse_response(self, response_text):
         try:
@@ -1371,6 +1440,8 @@ class ProviderFactory:
             "modelscope": ModelScopeProvider,
             "mimo": MiMoProvider,
             "intern": InternProvider,
+            "kimi": KimiProvider,
+            "nvidia_nim": NvidiaNIMProvider,
             "mineru": MinerUProvider,
             "paddle": PaddleProvider,  # 新增：PaddleOCR Provider
             "paddle_vl": PaddleVLProvider,  # 新增：PaddleOCR-VL Provider
@@ -1844,6 +1915,11 @@ class Api:
             # 获取自定义 API 地址（如果有的话）
             api_base = self.global_config.get(f"{provider_name}_api_base", "")
             
+            # PaddleOCR系列：旧版model字段存的是API URL，需跳过并使用默认模型名
+            if provider_name in ("paddle", "paddle_vl", "paddle_vl_15", "pp_structure_v3"):
+                if isinstance(model, str) and (model.startswith("http://") or model.startswith("https://") or model.startswith("/")):
+                    model = ""
+            
             # 兼容新旧键名
             timeout = self.global_config.get("a_timeout", self.global_config.get("timeout", 30))
             proxy_url = self.global_config.get("z_proxy_url", self.global_config.get("proxy_url", ""))
@@ -1853,7 +1929,11 @@ class Api:
                 return f"[Error] {provider_name} 的API密钥不能为空，请在设置中配置"
             
             if not model:
-                return f"[Error] {provider_name} 的模型不能为空，请在设置中配置"
+                if provider_name in ("paddle", "paddle_vl", "paddle_vl_15", "pp_structure_v3"):
+                    from .ai_ocr_config import get_provider_default_model
+                    model = get_provider_default_model(provider_name)
+                if not model:
+                    return f"[Error] {provider_name} 的模型不能为空，请在设置中配置"
             
             # 创建Provider，如果用户配置了自定义API地址则使用，否则使用默认值
             self.provider = ProviderFactory.create_provider(
@@ -1876,15 +1956,10 @@ class Api:
             # 创建HTTP客户端
             self.http_client = HTTPClient(timeout, proxy_url)
             
-            # 根据不同的provider使用不同的并发数配置
-            if provider_name == "paddle":
-                max_workers = self.global_config.get("paddle_max_concurrent", 5)
-            elif provider_name == "paddle_vl":
-                max_workers = self.global_config.get("paddle_vl_max_concurrent", 5)
-            elif provider_name == "paddle_vl_15":
-                max_workers = self.global_config.get("paddle_vl_15_max_concurrent", 5)
-            elif provider_name == "pp_structure_v3":
-                max_workers = self.global_config.get("pp_structure_v3_max_concurrent", 5)
+            # PaddleOCR系列也使用"并发识别数"(dual_max_workers)控制并发
+            if provider_name in ("paddle", "paddle_vl", "paddle_vl_15", "pp_structure_v3"):
+                dual_max = argd.get("dual_max_workers", 3)
+                max_workers = int(dual_max) if int(dual_max) > 0 else 3
             else:
                 max_workers = self.max_concurrent
             
@@ -2604,6 +2679,10 @@ class Api:
             return self._send_mineru_request(image_base64)
         if provider_name == "glm_ocr":
             return self._send_glm_ocr_request(image_base64)
+        if provider_name in ("paddle", "paddle_vl", "paddle_vl_15", "pp_structure_v3"):
+            return self._send_paddle_async_request(image_base64)
+        if provider_name == "nvidia_nim":
+            return self._send_nvidia_nim_request(image_base64)
         # 构建请求URL
         api_base = self.provider.api_base or self.provider.get_default_api_base()
         provider_name = self.global_config.get("a_provider", self.global_config.get("provider", "openai"))
@@ -2627,22 +2706,6 @@ class Api:
                     url = f"{api_base}/chat/completions"
             except Exception:
                 url = f"{api_base}/chat/completions"
-        elif provider_name == "paddle":
-            url = self.provider.model
-            if isinstance(url, str) and url.startswith("/") and api_base:
-                url = f"{api_base.rstrip('/')}" + url
-        elif provider_name == "paddle_vl":
-            url = self.provider.model
-            if isinstance(url, str) and url.startswith("/") and api_base:
-                url = f"{api_base.rstrip('/')}" + url
-        elif provider_name == "paddle_vl_15":
-            url = self.provider.model
-            if isinstance(url, str) and url.startswith("/") and api_base:
-                url = f"{api_base.rstrip('/')}" + url
-        elif provider_name == "pp_structure_v3":
-            url = self.provider.model
-            if isinstance(url, str) and url.startswith("/") and api_base:
-                url = f"{api_base.rstrip('/')}" + url
         else:
             url = f"{api_base}/chat/completions"
         
@@ -2655,67 +2718,6 @@ class Api:
                 payload = self._build_mistral_ocr_payload(image_base64, prompt, model_name)
         except Exception:
             pass
-        
-        # Paddle平台配置覆盖 - 根据不同平台读取对应参数
-        if provider_name in ("paddle", "paddle_vl", "paddle_vl_15", "pp_structure_v3"):
-            try:
-                local_cfg = getattr(self, "local_config", {}) or {}
-                # 通用参数：PP-OCRv5/VL/VL-1.5/V3都支持
-                common_keys = [
-                    ("useDocUnwarping", "paddle_use_doc_unwarping"),
-                    ("useDocOrientationClassify", "paddle_use_doc_orientation_classify"),
-                ]
-                for api_key, cfg_key in common_keys:
-                    if cfg_key in local_cfg:
-                        payload[api_key] = local_cfg[cfg_key]
-                
-                # PP-OCRv5 (paddle) 专属参数
-                if provider_name == "paddle":
-                    paddle_keys = [
-                        ("useTextlineOrientation", "paddle_use_textline_orientation"),
-                    ]
-                    for api_key, cfg_key in paddle_keys:
-                        if cfg_key in local_cfg:
-                            payload[api_key] = local_cfg[cfg_key]
-                
-                # PaddleOCR-VL (paddle_vl) 专属参数
-                elif provider_name == "paddle_vl":
-                    paddle_keys = [
-                        ("useChartRecognition", "paddle_use_chart_recognition"),
-                        ("prettifyMarkdown", "paddle_prettify_markdown"),
-                    ]
-                    for api_key, cfg_key in paddle_keys:
-                        if cfg_key in local_cfg:
-                            payload[api_key] = local_cfg[cfg_key]
-                
-                # PaddleOCR-VL-1.5 (paddle_vl_15) 专属参数
-                elif provider_name == "paddle_vl_15":
-                    paddle_keys = [
-                        ("useLayoutDetection", "paddle_use_layout_detection"),
-                        ("useChartRecognition", "paddle_use_chart_recognition"),
-                        ("prettifyMarkdown", "paddle_prettify_markdown"),
-                        ("repetitionPenalty", "paddle_repetition_penalty"),
-                        ("temperature", "paddle_temperature"),
-                        ("relevelTitles", "paddle_relevel_titles"),
-                        ("mergeTables", "paddle_merge_tables"),
-                    ]
-                    for api_key, cfg_key in paddle_keys:
-                        if cfg_key in local_cfg:
-                            payload[api_key] = local_cfg[cfg_key]
-                
-                # PP-StructureV3 (pp_structure_v3) 专属参数
-                elif provider_name == "pp_structure_v3":
-                    paddle_keys = [
-                        ("useTextlineOrientation", "paddle_use_textline_orientation"),
-                        ("useChartRecognition", "paddle_use_chart_recognition"),
-                        ("useFormulaRecognition", "paddle_use_formula_recognition"),
-                        ("useSealRecognition", "paddle_use_seal_recognition"),
-                    ]
-                    for api_key, cfg_key in paddle_keys:
-                        if cfg_key in local_cfg:
-                            payload[api_key] = local_cfg[cfg_key]
-            except Exception:
-                pass
         
         response = self.http_client.post(url, headers, json.dumps(payload))
         
@@ -2796,7 +2798,305 @@ class Api:
             "ar": "ARA",
         }
         return lang_map.get(language, "CHN_ENG")
-    
+
+    def _build_paddle_optional_payload(self, provider_name, local_cfg):
+        """构建PaddleOCR异步API的optionalPayload参数"""
+        optional_payload = {}
+        common_keys = [
+            ("useDocUnwarping", "paddle_use_doc_unwarping"),
+            ("useDocOrientationClassify", "paddle_use_doc_orientation_classify"),
+        ]
+        for api_key, cfg_key in common_keys:
+            if cfg_key in local_cfg:
+                optional_payload[api_key] = bool(local_cfg[cfg_key])
+
+        if provider_name == "paddle":
+            paddle_keys = [
+                ("useTextlineOrientation", "paddle_use_textline_orientation"),
+            ]
+            for api_key, cfg_key in paddle_keys:
+                if cfg_key in local_cfg:
+                    optional_payload[api_key] = bool(local_cfg[cfg_key])
+
+        elif provider_name == "paddle_vl":
+            paddle_keys = [
+                ("useChartRecognition", "paddle_use_chart_recognition"),
+                ("prettifyMarkdown", "paddle_prettify_markdown"),
+            ]
+            for api_key, cfg_key in paddle_keys:
+                if cfg_key in local_cfg:
+                    val = local_cfg[cfg_key]
+                    if isinstance(val, bool):
+                        optional_payload[api_key] = val
+                    elif api_key == "prettifyMarkdown":
+                        optional_payload[api_key] = bool(val)
+
+        elif provider_name == "paddle_vl_15":
+            paddle_keys_bool = [
+                ("useLayoutDetection", "paddle_use_layout_detection"),
+                ("useChartRecognition", "paddle_use_chart_recognition"),
+                ("prettifyMarkdown", "paddle_prettify_markdown"),
+                ("relevelTitles", "paddle_relevel_titles"),
+                ("mergeTables", "paddle_merge_tables"),
+            ]
+            for api_key, cfg_key in paddle_keys_bool:
+                if cfg_key in local_cfg:
+                    val = local_cfg[cfg_key]
+                    if isinstance(val, bool):
+                        optional_payload[api_key] = val
+                    elif api_key == "prettifyMarkdown":
+                        optional_payload[api_key] = bool(val)
+            paddle_keys_num = [
+                ("repetitionPenalty", "paddle_repetition_penalty"),
+                ("temperature", "paddle_temperature"),
+            ]
+            for api_key, cfg_key in paddle_keys_num:
+                if cfg_key in local_cfg:
+                    try:
+                        optional_payload[api_key] = float(local_cfg[cfg_key])
+                    except (ValueError, TypeError):
+                        pass
+
+        elif provider_name == "pp_structure_v3":
+            paddle_keys = [
+                ("useTextlineOrientation", "paddle_use_textline_orientation"),
+                ("useChartRecognition", "paddle_use_chart_recognition"),
+                ("useFormulaRecognition", "paddle_use_formula_recognition"),
+                ("useSealRecognition", "paddle_use_seal_recognition"),
+            ]
+            for api_key, cfg_key in paddle_keys:
+                if cfg_key in local_cfg:
+                    optional_payload[api_key] = bool(local_cfg[cfg_key])
+
+        return optional_payload
+
+    def _send_paddle_async_request(self, image_base64):
+        """PaddleOCR异步API请求：提交任务 → 轮询结果 → 下载解析
+
+        异步模式优化策略：
+        1. Umi-OCR的ThreadPoolExecutor已实现多线程并发，多张图片会并发调用此方法
+        2. 每张图片独立提交异步job，服务端并行处理
+        3. 激进轮询：首次0.2s，逐步退避到1s，尽快拿到结果
+        4. 多张图片并发时，服务端并行处理使总体速度不低于同步模式
+        """
+        provider_name = self.global_config.get("a_provider", self.global_config.get("provider", "paddle"))
+        api_base = self.provider.api_base or self.provider.get_default_api_base()
+        if not api_base:
+            api_base = "https://paddleocr.aistudio-app.com"
+        api_base = api_base.rstrip("/")
+
+        job_url = f"{api_base}/api/v2/ocr/jobs"
+        model_name = self.provider.model or self.provider.get_default_model()
+
+        local_cfg = getattr(self, "local_config", {}) or {}
+        optional_payload = self._build_paddle_optional_payload(provider_name, local_cfg)
+
+        headers = {
+            "Authorization": f"Bearer {self.provider.api_key}",
+        }
+
+        image_bytes = base64.b64decode(image_base64, validate=False)
+
+        data = {
+            "model": model_name,
+            "optionalPayload": json.dumps(optional_payload),
+        }
+
+        files = {
+            "file": {
+                "filename": "image.jpg",
+                "content": image_bytes,
+                "content_type": "image/jpeg",
+            }
+        }
+
+        submit_resp = self.http_client.post_multipart(job_url, headers=headers, files=files, data=data)
+
+        if submit_resp['status_code'] != 200:
+            raise Exception(f"PaddleOCR提交任务失败 (状态码: {submit_resp['status_code']}): {submit_resp['text'][:500]}")
+
+        try:
+            submit_data = json.loads(submit_resp['text'])
+        except Exception:
+            raise Exception(f"PaddleOCR提交任务响应解析失败: {submit_resp['text'][:500]}")
+
+        if submit_data.get('code') != 0:
+            raise Exception(f"PaddleOCR提交任务错误: {submit_data.get('msg', submit_resp['text'][:500])}")
+
+        job_id = submit_data.get('data', {}).get('jobId')
+        if not job_id:
+            raise Exception(f"PaddleOCR未返回jobId: {submit_resp['text'][:500]}")
+
+        timeout = getattr(self.http_client, 'timeout', 30)
+        max_wait = max(60, timeout * 4)
+        poll_url = f"{job_url}/{job_id}"
+        poll_headers = {
+            "Authorization": f"Bearer {self.provider.api_key}",
+            "Content-Type": "application/json",
+        }
+
+        start_ts = time.time()
+        result_json_url = None
+
+        poll_intervals = [2.0, 3.0, 5.0]
+        poll_count = 0
+
+        while time.time() - start_ts < max_wait:
+            try:
+                poll_resp = self.http_client.get(poll_url, headers=poll_headers)
+            except Exception:
+                idx = min(poll_count, len(poll_intervals) - 1)
+                time.sleep(poll_intervals[idx])
+                poll_count += 1
+                continue
+
+            if poll_resp.get('status_code') != 200:
+                idx = min(poll_count, len(poll_intervals) - 1)
+                time.sleep(poll_intervals[idx])
+                poll_count += 1
+                continue
+
+            try:
+                poll_data = json.loads(poll_resp['text'])
+            except Exception:
+                idx = min(poll_count, len(poll_intervals) - 1)
+                time.sleep(poll_intervals[idx])
+                poll_count += 1
+                continue
+
+            state = poll_data.get('data', {}).get('state', '')
+
+            if state == 'done':
+                result_url_obj = poll_data.get('data', {}).get('resultUrl', {})
+                result_json_url = result_url_obj.get('jsonUrl') if isinstance(result_url_obj, dict) else None
+                break
+            elif state == 'failed':
+                error_msg = poll_data.get('data', {}).get('errorMsg', '未知错误')
+                raise Exception(f"PaddleOCR解析失败: {error_msg}")
+            else:
+                idx = min(poll_count, len(poll_intervals) - 1)
+                time.sleep(poll_intervals[idx])
+                poll_count += 1
+
+        if not result_json_url:
+            raise Exception(f"PaddleOCR异步解析超时（{max_wait}s）")
+
+        try:
+            jsonl_resp = self.http_client.get(result_json_url)
+        except Exception:
+            raise Exception("PaddleOCR下载结果失败")
+
+        if jsonl_resp.get('status_code') != 200:
+            raise Exception(f"PaddleOCR下载结果失败 (状态码: {jsonl_resp.get('status_code')})")
+
+        jsonl_text = jsonl_resp.get('text', '')
+        if not jsonl_text or not jsonl_text.strip():
+            raise Exception("PaddleOCR返回结果为空")
+
+        lines = jsonl_text.strip().split('\n')
+        all_results = []
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                line_data = json.loads(line)
+                result = line_data.get('result', {})
+                all_results.append(result)
+            except Exception:
+                continue
+
+        if not all_results:
+            raise Exception("PaddleOCR解析结果为空")
+
+        if provider_name == "paddle":
+            sync_result = {"errorCode": 0, "result": {"ocrResults": []}}
+            for r in all_results:
+                ocr_res = r.get("ocrResults", [])
+                sync_result["result"]["ocrResults"].extend(ocr_res)
+            return json.dumps(sync_result, ensure_ascii=False)
+        else:
+            sync_result = {"errorCode": 0, "result": {"layoutParsingResults": []}}
+            for r in all_results:
+                layout_res = r.get("layoutParsingResults", [])
+                sync_result["result"]["layoutParsingResults"].extend(layout_res)
+            return json.dumps(sync_result, ensure_ascii=False)
+
+    def _send_nvidia_nim_request(self, image_base64):
+        """NVIDIA NIM请求：支持200直接返回和202异步轮询两种模式
+
+        NVIDIA NIM API可能返回：
+        - 200：直接返回结果
+        - 202：结果待定，需用requestId轮询 GET /v1/status/{requestId}
+        """
+        api_base = self.provider.api_base or self.provider.get_default_api_base()
+        if not api_base:
+            api_base = "https://integrate.api.nvidia.com/v1"
+        api_base = api_base.rstrip("/")
+
+        url = f"{api_base}/chat/completions"
+        headers = self.provider.build_headers()
+        prompt = self._get_ocr_prompt()
+        payload = self.provider.build_payload(image_base64, prompt)
+
+        response = self.http_client.post(url, headers, json.dumps(payload))
+
+        status_code = response.get('status_code', 0)
+
+        if status_code == 200:
+            return response.get('text', '')
+
+        elif status_code == 202:
+            try:
+                resp_data = json.loads(response.get('text', '{}'))
+            except Exception:
+                raise Exception(f"NVIDIA NIM返回202但响应解析失败: {response.get('text', '')[:500]}")
+
+            request_id = resp_data.get('requestId') or resp_data.get('request_id')
+            if not request_id:
+                raise Exception(f"NVIDIA NIM返回202但未找到requestId: {response.get('text', '')[:500]}")
+
+            poll_url = f"{api_base}/status/{request_id}"
+            poll_headers = {
+                "Authorization": f"Bearer {self.provider.api_key}",
+                "accept": "application/json",
+            }
+
+            timeout = getattr(self.http_client, 'timeout', 30)
+            max_wait = max(60, timeout * 4)
+            start_ts = time.time()
+
+            poll_intervals = [0.5, 1.0, 1.0, 2.0]
+            poll_count = 0
+
+            while time.time() - start_ts < max_wait:
+                idx = min(poll_count, len(poll_intervals) - 1)
+                time.sleep(poll_intervals[idx])
+                poll_count += 1
+
+                try:
+                    poll_resp = self.http_client.get(poll_url, headers=poll_headers)
+                except Exception:
+                    continue
+
+                poll_status = poll_resp.get('status_code', 0)
+
+                if poll_status == 200:
+                    return poll_resp.get('text', '')
+                elif poll_status == 202:
+                    continue
+                elif poll_status == 422:
+                    raise Exception(f"NVIDIA NIM轮询失败(422): {poll_resp.get('text', '')[:500]}")
+                elif poll_status == 500:
+                    raise Exception(f"NVIDIA NIM服务错误(500): {poll_resp.get('text', '')[:500]}")
+                else:
+                    continue
+
+            raise Exception(f"NVIDIA NIM异步请求超时（{max_wait}s）")
+
+        else:
+            raise Exception(f"NVIDIA NIM请求失败 (状态码: {status_code}): {response.get('text', '')[:500]}")
+
     def _send_mineru_request(self, image_base64):
         api_base = self.provider.api_base or self.provider.get_default_api_base()
         if not api_base:
