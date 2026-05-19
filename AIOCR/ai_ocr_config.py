@@ -78,21 +78,29 @@ PROVIDER_CONFIGS = {
         "api_base": "https://chat.intern-ai.org.cn/api/v1",
         "model": "",
     },
+    "kimi": {
+        "api_base": "https://api.moonshot.cn/v1",
+        "model": "kimi-k2.6",
+    },
+    "nvidia_nim": {
+        "api_base": "https://integrate.api.nvidia.com/v1",
+        "model": "moonshotai/kimi-k2.6",
+    },
     "paddle": {
-        "api_base": "",
-        "model": "",
+        "api_base": "https://paddleocr.aistudio-app.com",
+        "model": "PP-OCRv5",
     },
     "paddle_vl": {
-        "api_base": "",
-        "model": "",
+        "api_base": "https://paddleocr.aistudio-app.com",
+        "model": "PaddleOCR-VL",
     },
     "paddle_vl_15": {
-        "api_base": "",
-        "model": "",
+        "api_base": "https://paddleocr.aistudio-app.com",
+        "model": "PaddleOCR-VL-1.5",
     },
     "pp_structure_v3": {
-        "api_base": "",
-        "model": "",
+        "api_base": "https://paddleocr.aistudio-app.com",
+        "model": "PP-StructureV3",
     },
     "mineru": {
         "api_base": "https://mineru.net/api/v4",
@@ -106,7 +114,11 @@ def get_provider_default_api_base(provider):
     return PROVIDER_CONFIGS.get(provider, {}).get("api_base", "")
 
 def get_provider_default_model(provider):
-    """获取指定服务商的默认模型（现在返回空字符串，让用户自己填写）"""
+    """获取指定服务商的默认模型"""
+    cfg = PROVIDER_CONFIGS.get(provider, {})
+    model = cfg.get("model", "")
+    if model:
+        return model
     return ""
 
 def update_provider_config(provider):
@@ -171,6 +183,8 @@ globalOptions = {
             ["modelscope", "魔搭 (ModelScope)"],
             ["mimo", "小米MiMo"],
             ["intern", "浦源书生 (Intern)"],
+            ["kimi", "Kimi (月之暗面)"],
+            ["nvidia_nim", "NVIDIA NIM"],
             ["mineru", "MinerU"],
             ["paddle", "PaddleOCR (在线)"],
             ["paddle_vl", "PaddleOCR-VL (在线)"],
@@ -435,6 +449,46 @@ globalOptions = {
         "type": "text",
         "toolTip": tr("浦源书生多模态模型，如：internvl3.5-241b-a28b"),
     },
+    # Kimi (月之暗面) 配置
+    "kimi_api_key": {
+        "title": tr("Kimi API密钥"),
+        "default": "",
+        "type": "text",
+        "toolTip": tr("请输入Kimi平台的API Key（从 https://platform.moonshot.cn 获取）"),
+    },
+    "kimi_model": {
+        "title": tr("Kimi 模型"),
+        "default": "kimi-k2.6",
+        "type": "text",
+        "toolTip": tr("Kimi视觉模型名称，如：kimi-k2.6, kimi-k2.5, moonshot-v1-128k-vision-preview"),
+    },
+    "kimi_api_base": {
+        "title": tr("Kimi API地址"),
+        "default": "https://api.moonshot.cn/v1",
+        "type": "text",
+        "toolTip": tr("Kimi平台的API地址，默认：https://api.moonshot.cn/v1"),
+        "advanced": True,
+    },
+    # NVIDIA NIM 配置
+    "nvidia_nim_api_key": {
+        "title": tr("NVIDIA NIM API密钥"),
+        "default": "",
+        "type": "text",
+        "toolTip": tr("请输入NVIDIA NIM的API Key（从 https://build.nvidia.com 获取）"),
+    },
+    "nvidia_nim_model": {
+        "title": tr("NVIDIA NIM 模型"),
+        "default": "moonshotai/kimi-k2.6",
+        "type": "text",
+        "toolTip": tr("NVIDIA NIM模型名称，如：moonshotai/kimi-k2.6"),
+    },
+    "nvidia_nim_api_base": {
+        "title": tr("NVIDIA NIM API地址"),
+        "default": "https://integrate.api.nvidia.com/v1",
+        "type": "text",
+        "toolTip": tr("NVIDIA NIM的API地址，默认：https://integrate.api.nvidia.com/v1"),
+        "advanced": True,
+    },
 
     "mineru_api_key": {
         "title": tr("MinerU API密钥"),
@@ -456,97 +510,87 @@ globalOptions = {
         "advanced": True,
     },
 
-    # PaddleOCR 在线配置
+    # PaddleOCR 在线配置（异步解析模式）
     "paddle_api_key": {
         "title": tr("PaddleOCR Token"),
         "default": "",
         "type": "text",
-        "toolTip": tr("请输入PaddleOCR的Access Token"),
+        "toolTip": tr("请输入AI Studio的Access Token（从 https://aistudio.baidu.com/account/accessToken 获取）"),
     },
     "paddle_model": {
-        "title": tr("PaddleOCR API URL"),
-        "default": "",
+        "title": tr("PaddleOCR 模型"),
+        "default": "PP-OCRv5",
         "type": "text",
-        "toolTip": tr("请输入AI Studio任务中的完整API URL"),
+        "toolTip": tr("PaddleOCR模型名称，如：PP-OCRv5"),
+        "advanced": True,
     },
-    # PaddleOCR-VL 在线配置
+    "paddle_api_base": {
+        "title": tr("PaddleOCR API地址"),
+        "default": "https://paddleocr.aistudio-app.com",
+        "type": "text",
+        "toolTip": tr("PaddleOCR异步API基础地址，默认：https://paddleocr.aistudio-app.com"),
+        "advanced": True,
+    },
+    # PaddleOCR-VL 在线配置（异步解析模式）
     "paddle_vl_api_key": {
         "title": tr("PaddleOCR-VL Token"),
         "default": "",
         "type": "text",
-        "toolTip": tr("请输入PaddleOCR-VL的Access Token"),
+        "toolTip": tr("请输入AI Studio的Access Token（从 https://aistudio.baidu.com/account/accessToken 获取）"),
     },
     "paddle_vl_model": {
-        "title": tr("PaddleOCR-VL API URL"),
-        "default": "",
+        "title": tr("PaddleOCR-VL 模型"),
+        "default": "PaddleOCR-VL",
         "type": "text",
-        "toolTip": tr("请输入PaddleOCR-VL的完整API URL，如 /layout-parsing"),
+        "toolTip": tr("PaddleOCR-VL模型名称，如：PaddleOCR-VL"),
+        "advanced": True,
+    },
+    "paddle_vl_api_base": {
+        "title": tr("PaddleOCR-VL API地址"),
+        "default": "https://paddleocr.aistudio-app.com",
+        "type": "text",
+        "toolTip": tr("PaddleOCR-VL异步API基础地址，默认：https://paddleocr.aistudio-app.com"),
+        "advanced": True,
     },
     "paddle_vl_15_api_key": {
         "title": tr("PaddleOCR-VL-1.5 Token"),
         "default": "",
         "type": "text",
-        "toolTip": tr("请输入PaddleOCR-VL-1.5的Access Token"),
+        "toolTip": tr("请输入AI Studio的Access Token（从 https://aistudio.baidu.com/account/accessToken 获取）"),
     },
     "paddle_vl_15_model": {
-        "title": tr("PaddleOCR-VL-1.5 API URL"),
-        "default": "",
+        "title": tr("PaddleOCR-VL-1.5 模型"),
+        "default": "PaddleOCR-VL-1.5",
         "type": "text",
-        "toolTip": tr("请输入PaddleOCR-VL-1.5的完整API URL（含 https://...），如 https://.../layout-parsing"),
+        "toolTip": tr("PaddleOCR-VL-1.5模型名称，如：PaddleOCR-VL-1.5"),
+        "advanced": True,
     },
-    # PP-StructureV3 在线配置
+    "paddle_vl_15_api_base": {
+        "title": tr("PaddleOCR-VL-1.5 API地址"),
+        "default": "https://paddleocr.aistudio-app.com",
+        "type": "text",
+        "toolTip": tr("PaddleOCR-VL-1.5异步API基础地址，默认：https://paddleocr.aistudio-app.com"),
+        "advanced": True,
+    },
+    # PP-StructureV3 在线配置（异步解析模式）
     "pp_structure_v3_api_key": {
         "title": tr("PP-StructureV3 Token"),
         "default": "",
         "type": "text",
-        "toolTip": tr("请输入PP-StructureV3的Access Token"),
+        "toolTip": tr("请输入AI Studio的Access Token（从 https://aistudio.baidu.com/account/accessToken 获取）"),
     },
     "pp_structure_v3_model": {
-        "title": tr("PP-StructureV3 API URL"),
-        "default": "",
+        "title": tr("PP-StructureV3 模型"),
+        "default": "PP-StructureV3",
         "type": "text",
-        "toolTip": tr("请输入PP-StructureV3的完整API URL，访问 https://aistudio.baidu.com/paddleocr/task 获取"),
-    },
-
-    # PaddleOCR系列并发数配置
-    "paddle_max_concurrent": {
-        "title": tr("PaddleOCR 并发数"),
-        "default": 5,
-        "min": 1,
-        "max": 20,
-        "unit": tr("个"),
-        "isInt": True,
-        "toolTip": tr("PaddleOCR批量处理时的最大并发请求数。"),
+        "toolTip": tr("PP-StructureV3模型名称，如：PP-StructureV3"),
         "advanced": True,
     },
-    "paddle_vl_max_concurrent": {
-        "title": tr("PaddleOCR-VL 并发数"),
-        "default": 5,
-        "min": 1,
-        "max": 20,
-        "unit": tr("个"),
-        "isInt": True,
-        "toolTip": tr("PaddleOCR-VL批量处理时的最大并发请求数。"),
-        "advanced": True,
-    },
-    "paddle_vl_15_max_concurrent": {
-        "title": tr("PaddleOCR-VL-1.5 并发数"),
-        "default": 5,
-        "min": 1,
-        "max": 20,
-        "unit": tr("个"),
-        "isInt": True,
-        "toolTip": tr("PaddleOCR-VL-1.5批量处理时的最大并发请求数。"),
-        "advanced": True,
-    },
-    "pp_structure_v3_max_concurrent": {
-        "title": tr("PP-StructureV3 并发数"),
-        "default": 5,
-        "min": 1,
-        "max": 20,
-        "unit": tr("个"),
-        "isInt": True,
-        "toolTip": tr("PP-StructureV3批量处理时的最大并发请求数。"),
+    "pp_structure_v3_api_base": {
+        "title": tr("PP-StructureV3 API地址"),
+        "default": "https://paddleocr.aistudio-app.com",
+        "type": "text",
+        "toolTip": tr("PP-StructureV3异步API基础地址，默认：https://paddleocr.aistudio-app.com"),
         "advanced": True,
     },
 
@@ -657,10 +701,10 @@ localOptions = {
         "title": tr("并发识别数"),
         "default": 3,
         "min": 1,
-        "max": 10,
+        "max": 20,
         "unit": tr("个"),
         "isInt": True,
-        "toolTip": tr("并发向AI发送裁剪识别请求，提升总体速度。"),
+        "toolTip": tr("并发向AI发送识别请求，提升总体速度。PaddleOCR异步模式下建议设为5-10。"),
     },
     "dual_crop_padding": {
         "title": tr("裁剪边缘补白"),
