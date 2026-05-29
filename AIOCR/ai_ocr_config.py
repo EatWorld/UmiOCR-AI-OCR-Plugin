@@ -90,13 +90,9 @@ PROVIDER_CONFIGS = {
         "api_base": "https://paddleocr.aistudio-app.com",
         "model": "PP-OCRv5",
     },
-    "paddle_vl": {
+    "paddle_vl_16": {
         "api_base": "https://paddleocr.aistudio-app.com",
-        "model": "PaddleOCR-VL",
-    },
-    "paddle_vl_15": {
-        "api_base": "https://paddleocr.aistudio-app.com",
-        "model": "PaddleOCR-VL-1.5",
+        "model": "PaddleOCR-VL-1.6",
     },
     "pp_structure_v3": {
         "api_base": "https://paddleocr.aistudio-app.com",
@@ -105,6 +101,10 @@ PROVIDER_CONFIGS = {
     "mineru": {
         "api_base": "https://mineru.net/api/v4",
         "model": "vlm",
+    },
+    "longcat": {
+        "api_base": "https://api.longcat.chat/openai/v1",
+        "model": "LongCat-Flash-Chat",
     },
 }
 
@@ -187,9 +187,9 @@ globalOptions = {
             ["nvidia_nim", "NVIDIA NIM"],
             ["mineru", "MinerU"],
             ["paddle", "PaddleOCR (在线)"],
-            ["paddle_vl", "PaddleOCR-VL (在线)"],
-            ["paddle_vl_15", "PaddleOCR-VL-1.5 (在线)"],
+            ["paddle_vl_16", "PaddleOCR-VL-1.6 (在线)"],
             ["pp_structure_v3", "PP-StructureV3 (在线)"],
+            ["longcat", "Longcat AI"],
 
         ],
         "toolTip": tr("选择当前要使用的AI服务商。所有服务商的配置都会保存，切换时无需重新输入。"),
@@ -510,6 +510,27 @@ globalOptions = {
         "advanced": True,
     },
 
+    # Longcat AI配置
+    "longcat_api_key": {
+        "title": tr("Longcat AI API密钥"),
+        "default": "",
+        "type": "text",
+        "toolTip": tr("请输入Longcat AI平台的API Key（从 https://longcat.chat/platform/api_keys 获取）"),
+    },
+    "longcat_model": {
+        "title": tr("Longcat AI 模型"),
+        "default": "LongCat-Flash-Chat",
+        "type": "text",
+        "toolTip": tr("Longcat AI模型名称，如：LongCat-Flash-Chat, LongCat-Flash-Thinking, LongCat-Flash-Lite"),
+    },
+    "longcat_api_base": {
+        "title": tr("Longcat AI API地址"),
+        "default": "https://api.longcat.chat/openai/v1",
+        "type": "text",
+        "toolTip": tr("Longcat AI的API地址，默认：https://api.longcat.chat/openai/v1"),
+        "advanced": True,
+    },
+
     # PaddleOCR 在线配置（异步解析模式）
     "paddle_api_key": {
         "title": tr("PaddleOCR Token"),
@@ -531,45 +552,25 @@ globalOptions = {
         "toolTip": tr("PaddleOCR异步API基础地址，默认：https://paddleocr.aistudio-app.com"),
         "advanced": True,
     },
-    # PaddleOCR-VL 在线配置（异步解析模式）
-    "paddle_vl_api_key": {
-        "title": tr("PaddleOCR-VL Token"),
+    # PaddleOCR-VL-1.6 在线配置（异步解析模式）
+    "paddle_vl_16_api_key": {
+        "title": tr("PaddleOCR-VL-1.6 Token"),
         "default": "",
         "type": "text",
         "toolTip": tr("请输入AI Studio的Access Token（从 https://aistudio.baidu.com/account/accessToken 获取）"),
     },
-    "paddle_vl_model": {
-        "title": tr("PaddleOCR-VL 模型"),
-        "default": "PaddleOCR-VL",
+    "paddle_vl_16_model": {
+        "title": tr("PaddleOCR-VL-1.6 模型"),
+        "default": "PaddleOCR-VL-1.6",
         "type": "text",
-        "toolTip": tr("PaddleOCR-VL模型名称，如：PaddleOCR-VL"),
+        "toolTip": tr("PaddleOCR-VL-1.6模型名称，如：PaddleOCR-VL-1.6"),
         "advanced": True,
     },
-    "paddle_vl_api_base": {
-        "title": tr("PaddleOCR-VL API地址"),
+    "paddle_vl_16_api_base": {
+        "title": tr("PaddleOCR-VL-1.6 API地址"),
         "default": "https://paddleocr.aistudio-app.com",
         "type": "text",
-        "toolTip": tr("PaddleOCR-VL异步API基础地址，默认：https://paddleocr.aistudio-app.com"),
-        "advanced": True,
-    },
-    "paddle_vl_15_api_key": {
-        "title": tr("PaddleOCR-VL-1.5 Token"),
-        "default": "",
-        "type": "text",
-        "toolTip": tr("请输入AI Studio的Access Token（从 https://aistudio.baidu.com/account/accessToken 获取）"),
-    },
-    "paddle_vl_15_model": {
-        "title": tr("PaddleOCR-VL-1.5 模型"),
-        "default": "PaddleOCR-VL-1.5",
-        "type": "text",
-        "toolTip": tr("PaddleOCR-VL-1.5模型名称，如：PaddleOCR-VL-1.5"),
-        "advanced": True,
-    },
-    "paddle_vl_15_api_base": {
-        "title": tr("PaddleOCR-VL-1.5 API地址"),
-        "default": "https://paddleocr.aistudio-app.com",
-        "type": "text",
-        "toolTip": tr("PaddleOCR-VL-1.5异步API基础地址，默认：https://paddleocr.aistudio-app.com"),
+        "toolTip": tr("PaddleOCR-VL-1.6异步API基础地址，默认：https://paddleocr.aistudio-app.com"),
         "advanced": True,
     },
     # PP-StructureV3 在线配置（异步解析模式）
@@ -730,12 +731,12 @@ localOptions = {
     "paddle_use_doc_unwarping": {
         "title": tr("文档扭曲矫正"),
         "default": False,
-        "toolTip": tr("【PP-OCRv5/VL/VL-1.5/V3通用】自动矫正扭曲图片（褶皱、倾斜等）。"),
+        "toolTip": tr("【PP-OCRv5/VL-1.6/V3通用】自动矫正扭曲图片（褶皱、倾斜等）。"),
     },
     "paddle_use_doc_orientation_classify": {
         "title": tr("文档方向分类"),
         "default": False,
-        "toolTip": tr("【PP-OCRv5/VL/VL-1.5/V3通用】自动识别并矫正0°/90°/180°/270°的图片方向。"),
+        "toolTip": tr("【PP-OCRv5/VL-1.6/V3通用】自动识别并矫正0°/90°/180°/270°的图片方向。"),
     },
     "paddle_use_textline_orientation": {
         "title": tr("文本行方向矫正"),
@@ -745,12 +746,12 @@ localOptions = {
     "paddle_use_layout_detection": {
         "title": tr("版面区域检测"),
         "default": False,
-        "toolTip": tr("【仅VL-1.5】自动检测文档中不同区域并排序。"),
+        "toolTip": tr("【仅VL-1.6】自动检测文档中不同区域并排序。"),
     },
     "paddle_use_chart_recognition": {
         "title": tr("图表识别"),
         "default": False,
-        "toolTip": tr("【VL/VL-1.5/V3】自动解析图表（柱状图、饼图等）并转换为表格。"),
+        "toolTip": tr("【VL-1.6/V3】自动解析图表（柱状图、饼图等）并转换为表格。"),
     },
     "paddle_use_formula_recognition": {
         "title": tr("公式识别"),
@@ -760,35 +761,35 @@ localOptions = {
     "paddle_use_seal_recognition": {
         "title": tr("印章识别"),
         "default": False,
-        "toolTip": tr("【仅VL-1.5/V3】自动识别文档中的印章内容。"),
+        "toolTip": tr("【仅VL-1.6/V3】自动识别文档中的印章内容。"),
     },
     "paddle_prettify_markdown": {
         "title": tr("Markdown美化"),
         "default": True,
-        "toolTip": tr("【VL/VL-1.5】启用Markdown格式美化输出。"),
+        "toolTip": tr("【仅VL-1.6】启用Markdown格式美化输出。"),
     },
     "paddle_repetition_penalty": {
         "title": tr("重复惩罚参数"),
         "default": 1.0,
         "min": 1.0,
         "max": 2.0,
-        "toolTip": tr("【仅VL-1.5】重复惩罚参数(1.0-2.0)，用于减少重复输出。"),
+        "toolTip": tr("【仅VL-1.6】重复惩罚参数(1.0-2.0)，用于减少重复输出。"),
     },
     "paddle_temperature": {
         "title": tr("温度参数"),
         "default": 0.1,
         "min": 0.0,
         "max": 1.0,
-        "toolTip": tr("【仅VL-1.5】温度参数(0.0-1.0)，控制输出的随机性。"),
+        "toolTip": tr("【仅VL-1.6】温度参数(0.0-1.0)，控制输出的随机性。"),
     },
     "paddle_relevel_titles": {
         "title": tr("标题重分级"),
         "default": False,
-        "toolTip": tr("【仅VL-1.5】启用标题重分级功能，自动调整标题层级。"),
+        "toolTip": tr("【仅VL-1.6】启用标题重分级功能，自动调整标题层级。"),
     },
     "paddle_merge_tables": {
         "title": tr("表格合并"),
         "default": False,
-        "toolTip": tr("【仅VL-1.5】启用表格合并功能，合并跨页或分割的表格。"),
+        "toolTip": tr("【仅VL-1.6】启用表格合并功能，合并跨页或分割的表格。"),
     },
 }
