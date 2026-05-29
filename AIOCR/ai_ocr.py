@@ -1306,13 +1306,15 @@ class PaddleProvider(BaseProvider):
         return texts
 
 
-# PaddleOCR-VL Provider (在线 - 异步解析模式)
-class PaddleVLProvider(BaseProvider):
+# PaddleOCR-VL-1.6 Provider (在线 - 异步解析模式)
+class PaddleVL16Provider(BaseProvider):
+    """PaddleOCR-VL-1.6在线服务提供商 - 异步解析模式"""
+
     def get_default_api_base(self):
         return "https://paddleocr.aistudio-app.com"
 
     def get_default_model(self):
-        return "PaddleOCR-VL"
+        return "PaddleOCR-VL-1.6"
 
     def build_headers(self):
         return {
@@ -1340,43 +1342,7 @@ class PaddleVLProvider(BaseProvider):
             result_text = "\n\n".join(parts) if parts else ""
             return remove_image_tags(result_text)
         except Exception as e:
-            raise Exception(f"解析PaddleOCR-VL响应失败: {str(e)}")
-
-
-class PaddleVL15Provider(BaseProvider):
-    def get_default_api_base(self):
-        return "https://paddleocr.aistudio-app.com"
-
-    def get_default_model(self):
-        return "PaddleOCR-VL-1.5"
-
-    def build_headers(self):
-        return {
-            "Authorization": f"Bearer {self.api_key}",
-        }
-
-    def build_payload(self, image_base64, prompt):
-        return {}
-
-    def parse_response(self, response_text):
-        try:
-            data = json.loads(response_text)
-            if data.get("errorCode") != 0:
-                raise Exception(data.get("errorMsg") or "API错误")
-            result = data.get("result", {})
-            pages = result.get("layoutParsingResults", [])
-            if not pages:
-                return ""
-            parts = []
-            for p in pages:
-                md = p.get("markdown", {})
-                txt = md.get("text") if isinstance(md, dict) else None
-                if isinstance(txt, str) and txt.strip():
-                    parts.append(txt.strip())
-            result_text = "\n\n".join(parts) if parts else ""
-            return remove_image_tags(result_text)
-        except Exception as e:
-            raise Exception(f"解析PaddleOCR-VL-1.5响应失败: {str(e)}")
+            raise Exception(f"解析PaddleOCR-VL-1.6响应失败: {str(e)}")
 
 
 # PP-StructureV3 Provider (在线 - 异步解析模式)
@@ -1418,6 +1384,64 @@ class PPStructureV3Provider(BaseProvider):
             raise Exception(f"解析PP-StructureV3响应失败: {str(e)}")
 
 
+# Longcat AI Provider
+class LongcatProvider(BaseProvider):
+    """Longcat AI服务提供商 - OpenAI兼容API"""
+
+    def get_default_api_base(self):
+        return "https://api.longcat.chat/openai/v1"
+
+    def get_default_model(self):
+        return "LongCat-Flash-Chat"
+
+    def build_headers(self):
+        return {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {self.api_key}"
+        }
+
+    def build_payload(self, image_base64, prompt):
+        return {
+            "model": self.model or self.get_default_model(),
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": prompt},
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/jpeg;base64,{image_base64}"
+                            }
+                        }
+                    ]
+                }
+            ],
+            "max_tokens": 4096
+        }
+
+    def parse_response(self, response_text):
+        try:
+            if not response_text or not response_text.strip():
+                raise Exception("服务器返回了空响应")
+
+            data = json.loads(response_text)
+
+            if "error" in data:
+                error_msg = data["error"].get("message", str(data["error"]))
+                raise Exception(f"API错误: {error_msg}")
+
+            if "choices" in data and len(data["choices"]) > 0:
+                content = data["choices"][0]["message"]["content"]
+                return content
+            else:
+                return None
+        except json.JSONDecodeError:
+            raise Exception(f"解析Longcat响应失败: 无效的JSON格式。服务器返回内容: {response_text[:500]}")
+        except Exception as e:
+            raise Exception(f"解析Longcat响应失败: {str(e)}")
+
+
 # Provider工厂
 class ProviderFactory:
     @staticmethod
@@ -1444,9 +1468,9 @@ class ProviderFactory:
             "nvidia_nim": NvidiaNIMProvider,
             "mineru": MinerUProvider,
             "paddle": PaddleProvider,  # 新增：PaddleOCR Provider
-            "paddle_vl": PaddleVLProvider,  # 新增：PaddleOCR-VL Provider
-            "paddle_vl_15": PaddleVL15Provider,  # 新增：PaddleOCR-VL-1.5 Provider
+            "paddle_vl_16": PaddleVL16Provider,  # 新增：PaddleOCR-VL-1.6 Provider
             "pp_structure_v3": PPStructureV3Provider,  # 新增：PP-StructureV3 Provider
+            "longcat": LongcatProvider,  # 新增：Longcat AI Provider
 
         }
         
@@ -1916,7 +1940,7 @@ class Api:
             api_base = self.global_config.get(f"{provider_name}_api_base", "")
             
             # PaddleOCR系列：旧版model字段存的是API URL，需跳过并使用默认模型名
-            if provider_name in ("paddle", "paddle_vl", "paddle_vl_15", "pp_structure_v3"):
+            if provider_name in ("paddle", "paddle_vl_16", "pp_structure_v3"):
                 if isinstance(model, str) and (model.startswith("http://") or model.startswith("https://") or model.startswith("/")):
                     model = ""
             
@@ -1929,7 +1953,7 @@ class Api:
                 return f"[Error] {provider_name} 的API密钥不能为空，请在设置中配置"
             
             if not model:
-                if provider_name in ("paddle", "paddle_vl", "paddle_vl_15", "pp_structure_v3"):
+                if provider_name in ("paddle", "paddle_vl_16", "pp_structure_v3"):
                     from .ai_ocr_config import get_provider_default_model
                     model = get_provider_default_model(provider_name)
                 if not model:
@@ -1957,7 +1981,7 @@ class Api:
             self.http_client = HTTPClient(timeout, proxy_url)
             
             # PaddleOCR系列也使用"并发识别数"(dual_max_workers)控制并发
-            if provider_name in ("paddle", "paddle_vl", "paddle_vl_15", "pp_structure_v3"):
+            if provider_name in ("paddle", "paddle_vl_16", "pp_structure_v3"):
                 dual_max = argd.get("dual_max_workers", 3)
                 max_workers = int(dual_max) if int(dual_max) > 0 else 3
             else:
@@ -2304,7 +2328,7 @@ class Api:
         # 3) 构建纠错提示，将Paddle识别与坐标作为上下文提供给AI
         language = local.get("language", "auto")
         provider_name = self.global_config.get("a_provider", self.global_config.get("provider", "openai"))
-        if provider_name in ("paddle", "paddle_vl", "paddle_vl_15", "pp_structure_v3"):
+        if provider_name in ("paddle", "paddle_vl_16", "pp_structure_v3"):
             crop_lines = self._recognize_lines_by_cropping(image_base64, filtered, language)
             if crop_lines:
                 result_data = []
@@ -2679,7 +2703,7 @@ class Api:
             return self._send_mineru_request(image_base64)
         if provider_name == "glm_ocr":
             return self._send_glm_ocr_request(image_base64)
-        if provider_name in ("paddle", "paddle_vl", "paddle_vl_15", "pp_structure_v3"):
+        if provider_name in ("paddle", "paddle_vl_16", "pp_structure_v3"):
             return self._send_paddle_async_request(image_base64)
         if provider_name == "nvidia_nim":
             return self._send_nvidia_nim_request(image_base64)
@@ -2818,20 +2842,7 @@ class Api:
                 if cfg_key in local_cfg:
                     optional_payload[api_key] = bool(local_cfg[cfg_key])
 
-        elif provider_name == "paddle_vl":
-            paddle_keys = [
-                ("useChartRecognition", "paddle_use_chart_recognition"),
-                ("prettifyMarkdown", "paddle_prettify_markdown"),
-            ]
-            for api_key, cfg_key in paddle_keys:
-                if cfg_key in local_cfg:
-                    val = local_cfg[cfg_key]
-                    if isinstance(val, bool):
-                        optional_payload[api_key] = val
-                    elif api_key == "prettifyMarkdown":
-                        optional_payload[api_key] = bool(val)
-
-        elif provider_name == "paddle_vl_15":
+        elif provider_name == "paddle_vl_16":
             paddle_keys_bool = [
                 ("useLayoutDetection", "paddle_use_layout_detection"),
                 ("useChartRecognition", "paddle_use_chart_recognition"),
