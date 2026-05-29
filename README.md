@@ -2,7 +2,7 @@
 
 ## 🚀 项目简介
 
-本插件为 **Umi-OCR** 提供 **19个主流AI服务商** 的OCR功能，支持云端和本地AI服务的视觉识别API。作为离线OCR的强力补充，为用户提供更高精度、更广泛语言支持的智能文字识别服务。
+本插件为 **Umi-OCR** 提供 **21个主流AI服务商** 的OCR功能，支持云端和本地AI服务的视觉识别API。作为离线OCR的强力补充，为用户提供更高精度、更广泛语言支持的智能文字识别服务。
 
 ## 📋 关于 Umi-OCR
 
@@ -26,19 +26,21 @@
 ### 🌐 云端服务商
 | 服务商 | 建议模型 | 特点 |
 |--------|----------|------|
-| **硅基流动 (SiliconFlow)** | Qwen/Qwen3-VL-235B-A22B-Instruct（**强烈推荐**，**已下线**）/ Qwen/Qwen3.6-27B (**强烈推荐**)或 PaddlePaddle/PaddleOCR-VL-1.6 | 开源模型多，价格低，速度快，**中文识别准确率超高**，**强烈推荐** |
+| **硅基流动 (SiliconFlow)** | Qwen/Qwen3-VL-235B-A22B-Instruct （**强烈推荐**,**已下线**）或 PaddlePaddle/PaddleOCR-VL-1.6 | 开源模型多，价格低，速度快，**中文识别准确率超高**，**强烈推荐** |
 | **阿里云百炼 (Alibaba)** | Qwen/Qwen3-VL-235B-A22B-Instruct （**强烈推荐**）/qwen3.6-plus| **顶尖OCR模型**，中外文识别**极其优秀**，**强烈推荐**  |
 | **智谱AI (ZhipuAI)** | GLM-4.6V/GLM-OCR | 国产大模型，多模态能力强，**相当优秀** |
 | **豆包(Doubao)** | doubao-seed-2-0-pro/doubao-seed-1-8-251228 | 中文优化效果好，性价比高 |
 | **OpenAI** | gpt-5.5 | 高精度，多语言支持 |
 | **Google Gemini** | gemini-3.5-pro/gemini-3.5-flash | 速度快，成本低 |
-| **xAI Grok** | grok-4 | 创新模型，独特优势 |
+| **xAI Grok** | grok-4.2 | 创新模型，独特优势 |
 | **OpenRouter** | qwen/qwen2.5-vl-72b-instruct:free | 统一接口，模型丰富 |
 | **Groq** | meta-llama/llama-4-maverick-17b-128e-instruct | 高性能推理，速度极快 |
 | **魔搭 (ModelScope)** | Qwen/Qwen3-VL-235B-A22B-Instruct **（强烈推荐）** | 阿里达摩院开源平台，模型丰富，免费使用|
 | **无问芯穹 (Infinigence)** | Qwen/Qwen3-VL-235B-A22B-Instruct **（强烈推荐）**| 顶尖OCR模型，中文识别优秀，免费使用|
 | **Mistral AI** | mistral-ocr-latest | 欧洲AI公司，视觉模型优秀，免费使用|
-| **浦源书生 (Intern)** | intern-s1-pro/internvl3.5-241b-a28b | 学术界AI平台，多模态能力强，免费使用，其中intern-s1-pro为**优秀OCR模型**，中文识别**非常优秀**，**十分推荐**|
+| **浦源书生 (Intern)** | intern-s2-preview/intern-s1-pro/internvl3.5-241b-a28b | 学术界AI平台，多模态能力强，免费使用，其中intern-s2-preview/intern-s1-pro为**优秀OCR模型**，中文识别**非常优秀**，**十分推荐**|
+| **Kimi（月之暗面）** | kimi-k2.6/kimi-k2.5 | 月之暗面AI平台，支持视觉模型，长文本处理能力强，**支持自定义Base URL**|
+| **NVIDIA NIM** | moonshotai/kimi-k2.6 | NVIDIA高性能推理平台，视觉模型优秀，**支持自定义Base URL**|
 | **百度PaddleOCR系列** | V3/V5/VL-1.6 | 百度飞桨平台，支持多语言识别，高效准确解析文档内容，其中PaddleOCR-VL-1.6 为**顶尖OCR模型**，中外文识别**极其优秀**，**非常推荐**|
 | **MinerU系列** | pipeline(默认)/vlm(推荐) /MinerU-HTML/MinerU 2.5系列（官网暂未上线，上线后支持直接调用） | 行业领先的文档解析服务商，尤其擅长处理非标准和复杂文档，拥有**顶尖OCR模型**，中外文识别**极其优秀**，**非常推荐**|
 | **小米MiMo** | mimo-v2.5/mimo-v2-omni | 小米自研AI模型，支持图片理解，**支持专属Base URL**（Code套餐用户可使用 token-plan-cn.xiaomimimo.com）|
@@ -228,6 +230,20 @@
 2. 注册账号并获取API密钥；可自行申请更多Token
 3. 学术界AI平台，多模态能力强
 
+### Kimi（月之暗面）
+1. 访问 [Kimi 开放平台](https://platform.moonshot.cn/)
+2. 注册账号，在 [API Keys](https://platform.moonshot.cn/console/api-keys) 页面创建API密钥
+3. 月之暗面AI平台，支持视觉模型，长文本处理能力强
+4. 默认API地址：`https://api.moonshot.cn/v1`
+5. 支持模型：kimi-k2.6、kimi-k2.5 等
+
+### NVIDIA NIM
+1. 访问 [NVIDIA NIM](https://build.nvidia.com/)
+2. 注册账号并获取API密钥
+3. NVIDIA高性能推理平台，视觉模型优秀
+4. 默认API地址：`https://integrate.api.nvidia.com/v1`
+5. 支持模型：moonshotai/kimi-k2.6 等
+
 ### 小米MiMo
 1. 访问 [Xiaomi MiMo API开放平台](https://platform.xiaomimimo.com/)
 2. 使用小米账号登录，在 [控制台-API Keys](https://platform.xiaomimimo.com/#/console/api-keys) 创建API密钥
@@ -319,7 +335,6 @@
 
 
 ## 📝 版本历史
-
 - **v2.9.6**：更新PaddleOCR-VL至1.6版本，移除PaddleOCR-VL和PaddleOCR-VL-1.5支持，保留高级功能供VL-1.6使用；全面废弃PaddleOCR系列所有模型的同步解析模式，统一使用异步解析模式。
 - **v2.9.5**：新增Kimi（月之暗面）、NVIDIA NIM和Longcat AI平台支持；PaddleOCR系列全部切换为异步解析模式，适配官方API变更；PaddleOCR配置简化为仅需填写Token。
 - **v2.9.4**：完善LM Studio本地服务配置，新增自定义API地址支持；新增小米MiMo平台及其专属Base URL支持（Code套餐用户可使用专属地址）；暴露提示词窗口，允许用户自定义纯文字识别和含坐标识别的提示词。
