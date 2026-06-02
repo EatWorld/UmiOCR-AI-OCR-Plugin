@@ -53,6 +53,10 @@ PROVIDER_CONFIGS = {
         "api_base": "http://localhost:1234/v1",
         "model": "",  # 用户自定义
     },
+    "llamacpp": {
+        "api_base": "http://localhost:8080/v1",
+        "model": "",  # 用户自定义
+    },
     "groq": {
         "api_base": "https://api.groq.com/openai/v1",
         "model": "",  # 用户自定义
@@ -160,6 +164,12 @@ globalOptions = {
         "type": "text",
         "toolTip": tr("含坐标识别模式的提示词模板，{language}会被替换为当前识别语言。留空则使用默认模板。"),
     },
+    "a_prompt_markdown": {
+        "title": tr("Markdown识别 Prompt"),
+        "default": "识别图片中的文字，语言：{language}。以Markdown格式输出，保留标题、列表、表格、加粗、斜体等结构。直接返回Markdown内容，无其他说明。",
+        "type": "text",
+        "toolTip": tr("Markdown识别模式的提示词模板，{language}会被替换为当前识别语言。留空则使用默认模板。"),
+    },
 
     # 使用 a_ 前缀确保基础设置排在最前面
     "a_provider": {
@@ -177,6 +187,7 @@ globalOptions = {
             ["glm_ocr", "GLM-OCR"],
             ["ollama", "Ollama (本地)"],
             ["lmstudio", "LM Studio (本地)"],
+            ["llamacpp", "llama.cpp (本地)"],
             ["groq", "Groq"],
             ["infinigence", "无问芯穷 (Infinigence)"],
             ["mistral", "Mistral AI"],
@@ -341,6 +352,12 @@ globalOptions = {
         "type": "text",
         "toolTip": tr("Ollama本地视觉模型，如：llava:latest"),
     },
+    "ollama_api_base": {
+        "title": tr("Ollama API地址"),
+        "default": "http://localhost:11434/api",
+        "type": "text",
+        "toolTip": tr("Ollama本地服务的API地址，默认为 http://localhost:11434/api"),
+    },
 
     # LM Studio配置（本地）
     "lmstudio_api_key": {
@@ -360,6 +377,26 @@ globalOptions = {
         "default": "http://localhost:1234/v1",
         "type": "text",
         "toolTip": tr("LM Studio本地服务的API地址，默认为 http://localhost:1234/v1"),
+    },
+
+    # llama.cpp配置（本地）
+    "llamacpp_api_key": {
+        "title": tr("llama.cpp API密钥"),
+        "default": "",
+        "type": "text",
+        "toolTip": tr("可留空。如启动llama.cpp服务时设置了 --api-key，请在此填写对应密钥。"),
+    },
+    "llamacpp_model": {
+        "title": tr("llama.cpp 模型"),
+        "default": "",
+        "type": "text",
+        "toolTip": tr("llama.cpp加载的模型名称，可通过 /v1/models 端点查询。"),
+    },
+    "llamacpp_api_base": {
+        "title": tr("llama.cpp API地址"),
+        "default": "http://localhost:8080/v1",
+        "type": "text",
+        "toolTip": tr("llama.cpp本地服务的API地址，默认为 http://localhost:8080/v1"),
     },
 
     # Groq配置
@@ -654,8 +691,9 @@ localOptions = {
         "optionsList": [
             ["text_only", tr("仅文字")],
             ["with_coordinates", tr("文字+坐标")],
+            ["markdown", tr("Markdown格式")],
         ],
-        "toolTip": tr("选择OCR结果的输出格式。坐标信息可用于定位文字位置。"),
+        "toolTip": tr("选择OCR结果的输出格式。坐标信息可用于定位文字位置。Markdown格式将直接输出AI返回的Markdown内容。"),
     },
     
     "image_quality": {
