@@ -1442,6 +1442,61 @@ class LongcatProvider(BaseProvider):
             raise Exception(f"解析Longcat响应失败: {str(e)}")
 
 
+# llama.cpp Provider (本地)
+class LlamaCppProvider(BaseProvider):
+    """llama.cpp本地服务提供商 - OpenAI兼容API"""
+
+    def get_default_api_base(self):
+        return "http://localhost:8080/v1"
+
+    def get_default_model(self):
+        return ""
+
+    def build_headers(self):
+        headers = {
+            "Content-Type": "application/json"
+        }
+        if self.api_key:
+            headers["Authorization"] = f"Bearer {self.api_key}"
+        return headers
+
+    def build_payload(self, image_base64, prompt):
+        return {
+            "model": self.model or self.get_default_model(),
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": prompt},
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/jpeg;base64,{image_base64}"
+                            }
+                        }
+                    ]
+                }
+            ],
+            "max_tokens": 4000
+        }
+
+    def parse_response(self, response_text):
+        try:
+            data = json.loads(response_text)
+            if "error" in data:
+                error_msg = data["error"].get("message", str(data["error"]))
+                raise Exception(f"API错误: {error_msg}")
+            if "choices" in data and len(data["choices"]) > 0:
+                content = data["choices"][0]["message"]["content"]
+                return content
+            else:
+                return None
+        except json.JSONDecodeError as e:
+            raise Exception(f"解析llama.cpp响应失败: 无效的JSON格式。服务器返回内容: {response_text[:500]}")
+        except Exception as e:
+            raise Exception(f"解析llama.cpp响应失败: {str(e)}")
+
+
 # Provider工厂
 class ProviderFactory:
     @staticmethod
@@ -1471,6 +1526,7 @@ class ProviderFactory:
             "paddle_vl_16": PaddleVL16Provider,  # 新增：PaddleOCR-VL-1.6 Provider
             "pp_structure_v3": PPStructureV3Provider,  # 新增：PP-StructureV3 Provider
             "longcat": LongcatProvider,  # 新增：Longcat AI Provider
+            "llamacpp": LlamaCppProvider,
 
         }
         
@@ -2549,18 +2605,26 @@ class Api:
             # 根据识别策略选择流程（不再需要启用开关）
             if hasattr(self, 'local_config'):
                 strategy = self.local_config.get('dual_strategy', 'ai_high_precision_with_coordinates')
+                local = getattr(self, 'local_config', {})
+                output_format = local.get('output_format', 'text_only')
+                self._current_output_format = output_format
+                provider_name = self.global_config.get("a_provider", self.global_config.get("provider", "openai"))
+                # markdown格式：PaddleOCR-VL/StructureV3原生支持markdown，直接调用API获取
+                if output_format == 'markdown' and provider_name in ('paddle_vl_16', 'pp_structure_v3'):
+                    processed_base64 = self._preprocess_image(imageBase64)
+                    result = self._run_ocr(processed_base64, {"output_format": "markdown", "language": local.get("language", "auto")})
                 # 含位置版：Paddle检测框 + AI纠错文本
-                if strategy in ('ai_high_precision_with_coordinates', 'paddle_first_correction'):
+                elif strategy in ('ai_high_precision_with_coordinates', 'paddle_first_correction'):
                     result = self._run_paddle_first_correction(imageBase64)
                 # 纯文本：整图AI识别（预处理后）
                 elif strategy == 'ai_high_precision_text_only':
-                    local = getattr(self, 'local_config', {})
                     processed_base64 = self._preprocess_image(imageBase64)
-                    result = self._run_ocr(processed_base64, {"output_format": "text_only", "language": local.get("language", "auto")})
+                    result = self._run_ocr(processed_base64, {"output_format": output_format, "language": local.get("language", "auto")})
                 # 兜底：未知或旧值（如 'ai_first'）均按含位置版处理
                 else:
                     result = self._run_paddle_first_correction(imageBase64)
             else:
+                self._current_output_format = 'text_only'
                 # 预处理图像
                 processed_base64 = self._preprocess_image(imageBase64)
                 # 执行OCR
@@ -2679,10 +2743,14 @@ class Api:
         
         default_text_only = "识别图片中的文字，语言：{language}。保持原有格式，直接返回文字内容。"
         default_with_coordinates = '识别图片文字并返回坐标，语言：{language}\n输出JSON格式：{{"texts": [{{"text": "文字内容", "box": [[x1,y1],[x2,y2],[x3,y3],[x4,y4]]}}]}}\n坐标为像素位置，左上角为原点。直接返回JSON，无其他内容。'
+        default_markdown = "识别图片中的文字，语言：{language}。以Markdown格式输出，保留标题、列表、表格、加粗、斜体等结构。直接返回Markdown内容，无其他说明。"
         
         if output_format == "with_coordinates":
             template = self.global_config.get("a_prompt_with_coordinates", "").strip()
             prompt = template.replace("{language}", lang_instruction) if template else default_with_coordinates.replace("{language}", lang_instruction)
+        elif output_format == "markdown":
+            template = self.global_config.get("a_prompt_markdown", "").strip()
+            prompt = template.replace("{language}", lang_instruction) if template else default_markdown.replace("{language}", lang_instruction)
         else:
             template = self.global_config.get("a_prompt_text_only", "").strip()
             prompt = template.replace("{language}", lang_instruction) if template else default_text_only.replace("{language}", lang_instruction)
@@ -3408,6 +3476,8 @@ class Api:
 
         if output_format == "with_coordinates":
             return self._parse_text_with_coordinates(content)
+        elif output_format == "markdown":
+            return self._parse_markdown(content)
         else:
             return self._parse_text_only(content)
 
@@ -3698,6 +3768,44 @@ class Api:
         
         return {"code": 100, "data": result_data}
     
+    def _parse_markdown(self, content):
+        """解析为Markdown格式，包装为Umi-OCR兼容的列表格式"""
+        if isinstance(content, list):
+            text_parts = []
+            for item in content:
+                if isinstance(item, str):
+                    text_parts.append(item)
+                elif isinstance(item, dict) and "text" in item:
+                    text_parts.append(item["text"])
+                else:
+                    text_parts.append(str(item))
+            content = '\n'.join(text_parts)
+        elif isinstance(content, dict):
+            if "text" in content:
+                content = content["text"]
+            elif "markdown" in content:
+                content = content["markdown"]
+            else:
+                content = str(content)
+        elif not isinstance(content, str):
+            content = str(content)
+        
+        content = content.strip()
+        
+        if not content:
+            return self._create_empty_result()
+        
+        img_width, img_height = self.original_size if self.original_size else (800, 600)
+        margin = 5
+        box = [
+            [margin, margin],
+            [img_width - margin, margin],
+            [img_width - margin, img_height - margin],
+            [margin, img_height - margin]
+        ]
+        result_data = [{"text": content, "box": box, "score": 1.0}]
+        return {"code": 100, "data": result_data}
+    
     def _create_empty_result(self):
         """创建空结果"""
         return {"code": 101, "data": ""}
@@ -3711,6 +3819,11 @@ class Api:
         if not isinstance(result, dict):
             return result
         if "data" not in result:
+            return result
+
+        output_format = getattr(self, '_current_output_format', 'text_only')
+
+        if output_format == 'markdown':
             return result
 
         data = result.get("data")
