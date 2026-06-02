@@ -51,9 +51,10 @@
 |--------|----------|------|
 | **Ollama** | qwen2.5vl:7b, qwen3vl:8b | 🔒 **完全离线**，隐私保护，免费使用，**支持自定义地址** |
 | **LM Studio** | llava, llava-1.5-7b-hf | 🔒 **完全离线**，图形界面友好，OpenAI兼容，**支持自定义地址** |
+| **llama.cpp** | 用户自行加载的视觉模型 | 🔒 **完全离线**，高性能推理，OpenAI兼容API，**支持自定义地址和可选API Key** |
 
-> 💡 **自定义地址功能**：Ollama 和 LM Studio 支持自定义 API 地址，您可以：
-> - 🌐 连接到局域网内其他机器上的 Ollama/LM Studio 服务
+> 💡 **自定义地址功能**：Ollama、LM Studio 和 llama.cpp 均支持自定义 API 地址，您可以：
+> - 🌐 连接到局域网内其他机器上的 Ollama/LM Studio/llama.cpp 服务
 > - ⚡ 在配置较低的机器上运行 Umi-OCR，连接到高性能机器上的 AI 服务  
 > - 🔧 灵活部署，充分利用现有硬件资源
 > - 📡 支持远程AI服务，实现分布式OCR处理
@@ -94,6 +95,7 @@
 | 🌍 **多语言支持** | 支持中文、英文、日文、韩文、法文、德文、西班牙文、俄文、阿拉伯文等 |
 | ⚡ **多厂商选择** | 支持OpenAI、Gemini、xAI、OpenRouter、硅基流动、豆包等多个服务商 |
 | 📍 **坐标提取** | 可选择输出文字的位置坐标信息 |
+| 📝 **Markdown输出** | 支持以Markdown格式直接输出识别结果，保留标题、列表、表格等结构 |
 | 🔧 **灵活配置** | 支持图像质量、尺寸、超时等多项参数调整 |
 | 🌐 **代理支持** | 支持HTTP/SOCKS5代理，适应不同网络环境 |
 | 🔄 **智能重试** | 自动重试机制，提高识别成功率 |
@@ -133,7 +135,11 @@
 5. 在局部设置中选择"识别策略"：
    - 双通道：AI高精度识别（含位置版）：输出带坐标的文本，适合PDF等文档识别。
    - 仅AI高精度识别：直接输出纯文本，不含坐标，适合只需要文本信息的识别。
-6. 设置参数：
+6. 在局部设置中选择"输出格式"：
+    - 仅文字：输出纯文本结果。
+    - 文字+坐标：输出带位置坐标的文本。
+    - Markdown格式：以Markdown格式直接输出识别结果，保留标题、列表、表格等结构。PaddleOCR-VL-1.6和PP-StructureV3原生支持Markdown输出（PaddleOCR-V5原生不支持此功能）。
+7. 设置参数：
    - 裁剪边缘补白 ： 2 px
    - 最大识别框数 ： 30–100 （按图片复杂度与成本权衡）
    - 并发识别数 ： 3–6 （视本机与服务商速率）,Paddle系列和MinerU系列**上限为2**
@@ -325,6 +331,28 @@
    - 默认API地址（可修改）：http://localhost:1234/v1
    - API密钥：留空或填入"not-needed"
 
+### llama.cpp (高性能推理)
+1. **安装llama.cpp**：
+   - 从 [llama.cpp Releases](https://github.com/ggml-org/llama.cpp/releases) 下载适合您系统的版本
+   - 或通过包管理器安装
+
+2. **下载视觉模型**：
+   - 从 Hugging Face 等平台下载支持视觉的 GGUF 模型文件
+   - 推荐：LLaVA、Qwen-VL 等视觉模型的 GGUF 量化版本
+
+3. **启动服务**：
+   ```bash
+   llama-server -m <模型路径> --host 0.0.0.0 --port 8080
+   # 服务将在 http://localhost:8080/v1 启动（OpenAI兼容API）
+   # 如需设置API密钥：llama-server -m <模型路径> --api-key your-secret-key
+   ```
+
+4. **在插件中配置**：
+   - 服务商：选择 "llama.cpp (本地)"
+   - 模型：填入加载的模型名称
+   - 默认API地址（可修改）：http://localhost:8080/v1
+   - API密钥：如启动时设置了 `--api-key` 则填写对应密钥，否则留空
+
 ### 🔒 本地服务优势
 - **完全离线**：无需网络连接，数据不上传
 - **隐私保护**：所有处理在本地完成
@@ -335,6 +363,7 @@
 
 
 ## 📝 版本历史
+- **v2.9.7**：新增Markdown格式输出选项，所有平台均可选择以Markdown格式直接输出识别结果；PaddleOCR-VL-1.6和PP-StructureV3原生支持Markdown输出，无需裁剪即可获取完整Markdown结构；Markdown模式下保留所有符号（包括#标题），仅文字和文字+坐标模式不受影响。新增llama.cpp本地服务商支持；Ollama平台API地址开放为用户可自定义。
 - **v2.9.6**：更新PaddleOCR-VL至1.6版本，移除PaddleOCR-VL和PaddleOCR-VL-1.5支持，保留高级功能供VL-1.6使用；全面废弃PaddleOCR系列所有模型的同步解析模式，统一使用异步解析模式。
 - **v2.9.5**：新增Kimi（月之暗面）、NVIDIA NIM和Longcat AI平台支持；PaddleOCR系列全部切换为异步解析模式，适配官方API变更；PaddleOCR配置简化为仅需填写Token。
 - **v2.9.4**：完善LM Studio本地服务配置，新增自定义API地址支持；新增小米MiMo平台及其专属Base URL支持（Code套餐用户可使用专属地址）；暴露提示词窗口，允许用户自定义纯文字识别和含坐标识别的提示词。
