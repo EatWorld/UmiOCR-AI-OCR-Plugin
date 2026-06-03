@@ -194,16 +194,15 @@ class SiliconFlowProvider(BaseProvider):
         except Exception as e:
             raise Exception(f"解析硅基流动响应失败: {str(e)}")
 
-# 阿里云百炼模型（千问）Provider
-# 阿里云百炼 Provider
+# 阿里云百炼 Provider（使用 OpenAI 兼容模式，同步响应速度快）
 class AlibabaProvider(BaseProvider):
-    """阿里云百炼服务提供商"""
+    """阿里云百炼服务提供商 - 使用OpenAI兼容模式"""
     
     def get_default_api_base(self):
-        return "https://dashscope.aliyuncs.com/api/v1"
+        return "https://dashscope.aliyuncs.com/compatible-mode/v1"
         
     def get_default_model(self):
-        return ""
+        return "qwen-vl-plus"
         
     def build_headers(self):
         return {
@@ -214,74 +213,32 @@ class AlibabaProvider(BaseProvider):
     def build_payload(self, image_base64, prompt):
         return {
             "model": self.model or self.get_default_model(),
-            "input": {
-                "messages": [
-                    {
-                        "role": "user",
-                        "content": [
-                            {"text": prompt},
-                            {
-                                "image": f"data:image/jpeg;base64,{image_base64}"
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": prompt},
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/jpeg;base64,{image_base64}"
                             }
-                        ]
-                    }
-                ]
-            }
+                        }
+                    ]
+                }
+            ],
+            "max_tokens": 4000
         }
         
     def parse_response(self, response_text):
         try:
             data = json.loads(response_text)
-            # 阿里云百炼的响应格式
-            if "output" in data:
-                if "choices" in data["output"] and len(data["output"]["choices"]) > 0:
-                    # 新版本API格式
-                    content = data["output"]["choices"][0]["message"]["content"]
-                    return self._extract_text_from_content(content)
-                elif "text" in data["output"]:
-                    # 旧版本API格式
-                    content = data["output"]["text"]
-                    return self._extract_text_from_content(content)
+            if "choices" in data and len(data["choices"]) > 0:
+                content = data["choices"][0]["message"]["content"]
+                return content
             return None
         except Exception as e:
             raise Exception(f"解析阿里云百炼响应失败: {str(e)}")
-    
-    def _extract_text_from_content(self, content):
-        """从content中提取文本内容"""
-        if content is None:
-            return None
-            
-        # 如果是字符串，直接返回
-        if isinstance(content, str):
-            return content
-            
-        # 如果是列表，处理每个元素
-        if isinstance(content, list):
-            text_parts = []
-            for item in content:
-                if isinstance(item, str):
-                    text_parts.append(item)
-                elif isinstance(item, dict) and "text" in item:
-                    text_parts.append(item["text"])
-                elif isinstance(item, dict) and "content" in item:
-                    text_parts.append(str(item["content"]))
-                else:
-                    # 如果是其他类型，尝试转换为字符串
-                    text_parts.append(str(item))
-            return ' '.join(text_parts)
-            
-        # 如果是字典，尝试提取文本字段
-        if isinstance(content, dict):
-            if "text" in content:
-                return content["text"]
-            elif "content" in content:
-                return str(content["content"])
-            else:
-                # 如果没有明确的文本字段，返回整个字典的字符串表示
-                return str(content)
-                
-        # 其他类型，转换为字符串
-        return str(content)
 
 # 豆包 Provider
 class DoubaoProvider(BaseProvider):
@@ -1551,6 +1508,28 @@ class HTTPClient:
     def __init__(self, timeout=30, proxy_url=None):
         self.timeout = timeout
         self.proxy_url = proxy_url
+        # 复用opener，避免每次请求都重新TLS握手
+        self._opener = None
+    
+    def _get_opener(self):
+        """获取或创建复用的opener（含SSL和代理配置）"""
+        if self._opener is not None:
+            return self._opener
+        import ssl
+        ssl_context = ssl.create_default_context()
+        ssl_context.check_hostname = False
+        ssl_context.verify_mode = ssl.CERT_NONE
+        if self.proxy_url:
+            proxy_handler = urllib.request.ProxyHandler({
+                'http': self.proxy_url,
+                'https': self.proxy_url
+            })
+            https_handler = urllib.request.HTTPSHandler(context=ssl_context)
+            self._opener = urllib.request.build_opener(proxy_handler, https_handler)
+        else:
+            https_handler = urllib.request.HTTPSHandler(context=ssl_context)
+            self._opener = urllib.request.build_opener(https_handler)
+        return self._opener
     
     def post_multipart(self, url, headers=None, files=None, data=None):
         """发送 multipart/form-data POST请求（用于文件上传）"""
@@ -1626,26 +1605,8 @@ class HTTPClient:
             # 创建请求
             req = urllib.request.Request(url, data=body_bytes, headers=default_headers)
             
-            # 创建 SSL 上下文
-            import ssl
-            ssl_context = ssl.create_default_context()
-            ssl_context.check_hostname = False
-            ssl_context.verify_mode = ssl.CERT_NONE
-            
-            # 设置代理和 SSL
-            if self.proxy_url:
-                proxy_handler = urllib.request.ProxyHandler({
-                    'http': self.proxy_url, 
-                    'https': self.proxy_url
-                })
-                https_handler = urllib.request.HTTPSHandler(context=ssl_context)
-                opener = urllib.request.build_opener(proxy_handler, https_handler)
-            else:
-                https_handler = urllib.request.HTTPSHandler(context=ssl_context)
-                opener = urllib.request.build_opener(https_handler)
-            
-            # 发送请求
-            response = opener.open(req, timeout=self.timeout)
+            # 发送请求（复用opener）
+            response = self._get_opener().open(req, timeout=self.timeout)
             response_data = response.read()
             
             # 处理响应
@@ -1699,26 +1660,8 @@ class HTTPClient:
             req_data = data.encode('utf-8') if isinstance(data, str) else data
             req = urllib.request.Request(url, data=req_data, headers=default_headers)
             
-            # 创建 SSL 上下文
-            import ssl
-            ssl_context = ssl.create_default_context()
-            ssl_context.check_hostname = False
-            ssl_context.verify_mode = ssl.CERT_NONE
-            
-            # 设置代理和 SSL
-            if self.proxy_url:
-                proxy_handler = urllib.request.ProxyHandler({
-                    'http': self.proxy_url, 
-                    'https': self.proxy_url
-                })
-                https_handler = urllib.request.HTTPSHandler(context=ssl_context)
-                opener = urllib.request.build_opener(proxy_handler, https_handler)
-            else:
-                https_handler = urllib.request.HTTPSHandler(context=ssl_context)
-                opener = urllib.request.build_opener(https_handler)
-            
-            # 发送请求
-            response = opener.open(req, timeout=self.timeout)
+            # 发送请求（复用opener）
+            response = self._get_opener().open(req, timeout=self.timeout)
             response_data = response.read()
             
             # 处理压缩响应
@@ -1811,23 +1754,7 @@ class HTTPClient:
             req_data = data.encode('utf-8') if isinstance(data, str) else data
             req = urllib.request.Request(url, data=req_data, headers=default_headers, method=method.upper())
 
-            import ssl
-            ssl_context = ssl.create_default_context()
-            ssl_context.check_hostname = False
-            ssl_context.verify_mode = ssl.CERT_NONE
-
-            if self.proxy_url:
-                proxy_handler = urllib.request.ProxyHandler({
-                    'http': self.proxy_url,
-                    'https': self.proxy_url
-                })
-                https_handler = urllib.request.HTTPSHandler(context=ssl_context)
-                opener = urllib.request.build_opener(proxy_handler, https_handler)
-            else:
-                https_handler = urllib.request.HTTPSHandler(context=ssl_context)
-                opener = urllib.request.build_opener(https_handler)
-
-            response = opener.open(req, timeout=self.timeout)
+            response = self._get_opener().open(req, timeout=self.timeout)
             response_data = response.read()
 
             content_encoding = response.headers.get('Content-Encoding', '').lower()
@@ -1916,23 +1843,7 @@ class HTTPClient:
             req_data = data.encode('utf-8') if isinstance(data, str) else data
             req = urllib.request.Request(url, data=req_data, headers=default_headers, method=method.upper())
 
-            import ssl
-            ssl_context = ssl.create_default_context()
-            ssl_context.check_hostname = False
-            ssl_context.verify_mode = ssl.CERT_NONE
-
-            if self.proxy_url:
-                proxy_handler = urllib.request.ProxyHandler({
-                    'http': self.proxy_url,
-                    'https': self.proxy_url
-                })
-                https_handler = urllib.request.HTTPSHandler(context=ssl_context)
-                opener = urllib.request.build_opener(proxy_handler, https_handler)
-            else:
-                https_handler = urllib.request.HTTPSHandler(context=ssl_context)
-                opener = urllib.request.build_opener(https_handler)
-
-            response = opener.open(req, timeout=self.timeout)
+            response = self._get_opener().open(req, timeout=self.timeout)
             response_data = response.read()
 
             return {
@@ -2774,7 +2685,7 @@ class Api:
         if provider_name in ("paddle", "paddle_vl_16", "pp_structure_v3"):
             return self._send_paddle_async_request(image_base64)
         if provider_name == "nvidia_nim":
-            return self._send_nvidia_nim_request(image_base64)
+            return self._send_nvidia_nim_request(image_base64, prompt)
         # 构建请求URL
         api_base = self.provider.api_base or self.provider.get_default_api_base()
         provider_name = self.global_config.get("a_provider", self.global_config.get("provider", "openai"))
@@ -2782,8 +2693,6 @@ class Api:
         if provider_name == "gemini":
             model = self.provider.model or self.provider.get_default_model()
             url = f"{api_base}/models/{model}:generateContent?key={self.provider.api_key}"
-        elif provider_name == "alibaba":
-            url = f"{api_base}/services/aigc/multimodal-generation/generation"
         elif provider_name == "zhipu":
             url = f"{api_base}/chat/completions"
         elif provider_name == "ollama":
@@ -3101,7 +3010,7 @@ class Api:
                 sync_result["result"]["layoutParsingResults"].extend(layout_res)
             return json.dumps(sync_result, ensure_ascii=False)
 
-    def _send_nvidia_nim_request(self, image_base64):
+    def _send_nvidia_nim_request(self, image_base64, prompt):
         """NVIDIA NIM请求：支持200直接返回和202异步轮询两种模式
 
         NVIDIA NIM API可能返回：
@@ -3115,7 +3024,6 @@ class Api:
 
         url = f"{api_base}/chat/completions"
         headers = self.provider.build_headers()
-        prompt = self._get_ocr_prompt()
         payload = self.provider.build_payload(image_base64, prompt)
 
         response = self.http_client.post(url, headers, json.dumps(payload))
