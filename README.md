@@ -363,6 +363,8 @@
 
 
 ## 📝 版本历史
+- **v2.9.7b**：修复阿里云百炼平台识别速度极慢的问题：将请求方式从DashScope原生API（`/services/aigc/multimodal-generation/generation`）切换为OpenAI兼容模式（`/compatible-mode/v1/chat/completions`），与阿里云官方推荐方式一致，响应速度从数分钟降至正常水平。同时优化HTTP客户端连接复用机制，`HTTPClient`改为复用同一个opener实例，避免每次请求都重建TLS握手和TCP连接，所有平台的多API调用场景（如双通道纠错回退）均受益。
+- **v2.9.7a**：修复NVIDIA NIM平台报错 `'Api' object has no attribute '_get_ocr_prompt'` 的问题：`_send_nvidia_nim_request`方法调用了不存在的`_get_ocr_prompt()`，修正为接收上游已构建好的`prompt`参数。
 - **v2.9.7**：新增Markdown格式输出选项，所有平台均可选择以Markdown格式直接输出识别结果；PaddleOCR-VL-1.6和PP-StructureV3原生支持Markdown输出，无需裁剪即可获取完整Markdown结构；Markdown模式下保留所有符号（包括#标题），仅文字和文字+坐标模式不受影响。新增llama.cpp本地服务商支持；Ollama平台API地址开放为用户可自定义。
 - **v2.9.6**：更新PaddleOCR-VL至1.6版本，移除PaddleOCR-VL和PaddleOCR-VL-1.5支持，保留高级功能供VL-1.6使用；全面废弃PaddleOCR系列所有模型的同步解析模式，统一使用异步解析模式。
 - **v2.9.5**：新增Kimi（月之暗面）、NVIDIA NIM和Longcat AI平台支持；PaddleOCR系列全部切换为异步解析模式，适配官方API变更；PaddleOCR配置简化为仅需填写Token。
