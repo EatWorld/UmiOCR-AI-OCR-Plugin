@@ -1196,7 +1196,7 @@ class PaddleProvider(BaseProvider):
         return "https://paddleocr.aistudio-app.com"
 
     def get_default_model(self):
-        return "PP-OCRv5"
+        return "PP-OCRv6"
 
     def build_headers(self):
         return {
