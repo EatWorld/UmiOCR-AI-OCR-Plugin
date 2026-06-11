@@ -132,7 +132,7 @@ NVIDIA NIM的API地址，默认：https://integrate.api.nvidia.com/v1,NVIDIA NIM
 PaddleOCR Token,PaddleOCR Token,PaddleOCR Token,PaddleOCR Token,PaddleOCR Token,,,,,,,,,
 请输入AI Studio的Access Token（从 https://aistudio.baidu.com/account/accessToken 获取）,Please enter AI Studio Access Token (from https://aistudio.baidu.com/account/accessToken),请输入AI Studio的Access Token（从 https://aistudio.baidu.com/account/accessToken 获取）,請輸入AI Studio的Access Token（從 https://aistudio.baidu.com/account/accessToken 獲取）,AI StudioのAccess Tokenを入力してください（https://aistudio.baidu.com/account/accessToken から取得）,,,,,,,,,
 PaddleOCR 模型,PaddleOCR Model,PaddleOCR 模型,PaddleOCR 模型,PaddleOCR モデル,,,,,,,,,
-PaddleOCR模型名称，如：PP-OCRv5,PaddleOCR model name, e.g., PP-OCRv5,PaddleOCR模型名称，如：PP-OCRv5,PaddleOCR模型名稱，如：PP-OCRv5,PaddleOCRモデル名、例：PP-OCRv5,,,,,,,,,
+PaddleOCR模型名称，如：PP-OCRv6,PaddleOCR model name, e.g., PP-OCRv6,PaddleOCR模型名称，如：PP-OCRv6,PaddleOCR模型名稱，如：PP-OCRv6,PaddleOCRモデル名、例：PP-OCRv6,,,,,,,,,
 PaddleOCR API地址,PaddleOCR API URL,PaddleOCR API地址,PaddleOCR API位址,PaddleOCR API URL,,,,,,,,,
 PaddleOCR异步API基础地址，默认：https://paddleocr.aistudio-app.com,PaddleOCR async API base URL, default: https://paddleocr.aistudio-app.com,PaddleOCR异步API基础地址，默认：https://paddleocr.aistudio-app.com,PaddleOCR異步API基礎位址，默認：https://paddleocr.aistudio-app.com,PaddleOCR非同期APIベースURL、デフォルト：https://paddleocr.aistudio-app.com,,,,,,,,,
 PaddleOCR-VL-1.6 Token,PaddleOCR-VL-1.6 Token,PaddleOCR-VL-1.6 Token,PaddleOCR-VL-1.6 Token,PaddleOCR-VL-1.6 Token,,,,,,,,,
