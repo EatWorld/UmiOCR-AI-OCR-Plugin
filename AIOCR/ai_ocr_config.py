@@ -43,7 +43,7 @@ PROVIDER_CONFIGS = {
     },
     "alibaba": {
         "api_base": "https://dashscope.aliyuncs.com/compatible-mode/v1",
-        "model": "",  # 用户自定义
+        "model": "qwen-vl-plus",
     },
     "ollama": {
         "api_base": "http://localhost:11434/api",
@@ -92,7 +92,7 @@ PROVIDER_CONFIGS = {
     },
     "paddle": {
         "api_base": "https://paddleocr.aistudio-app.com",
-        "model": "PP-OCRv5",
+        "model": "PP-OCRv6",
     },
     "paddle_vl_16": {
         "api_base": "https://paddleocr.aistudio-app.com",
@@ -224,9 +224,9 @@ globalOptions = {
     },
     "alibaba_model": {
         "title": tr("阿里云百炼 模型"),
-        "default": "qwen-vl-plus-2025-08-15",
+        "default": "qwen-vl-plus",
         "type": "text",
-        "toolTip": tr("阿里云百炼模型名称，如：qwen-vl-plus-2025-08-15"),
+        "toolTip": tr("阿里云百炼模型名称，如：qwen-vl-plus, qwen-vl-max, qwen-vl-ocr"),
     },
 
     # 豆包配置
@@ -577,9 +577,9 @@ globalOptions = {
     },
     "paddle_model": {
         "title": tr("PaddleOCR 模型"),
-        "default": "PP-OCRv5",
+        "default": "PP-OCRv6",
         "type": "text",
-        "toolTip": tr("PaddleOCR模型名称，如：PP-OCRv5"),
+        "toolTip": tr("PaddleOCR模型名称，如：PP-OCRv6"),
         "advanced": True,
     },
     "paddle_api_base": {
@@ -769,17 +769,17 @@ localOptions = {
     "paddle_use_doc_unwarping": {
         "title": tr("文档扭曲矫正"),
         "default": False,
-        "toolTip": tr("【PP-OCRv5/VL-1.6/V3通用】自动矫正扭曲图片（褶皱、倾斜等）。"),
+        "toolTip": tr("【PP-OCRv6/VL-1.6/V3通用】自动矫正扭曲图片（褶皱、倾斜等）。"),
     },
     "paddle_use_doc_orientation_classify": {
         "title": tr("文档方向分类"),
         "default": False,
-        "toolTip": tr("【PP-OCRv5/VL-1.6/V3通用】自动识别并矫正0°/90°/180°/270°的图片方向。"),
+        "toolTip": tr("【PP-OCRv6/VL-1.6/V3通用】自动识别并矫正0°/90°/180°/270°的图片方向。"),
     },
     "paddle_use_textline_orientation": {
         "title": tr("文本行方向矫正"),
         "default": False,
-        "toolTip": tr("【仅PP-OCRv5/V3】自动识别和矫正0°/180°的文本行方向。"),
+        "toolTip": tr("【仅PP-OCRv6/V3】自动识别和矫正0°/180°的文本行方向。"),
     },
     "paddle_use_layout_detection": {
         "title": tr("版面区域检测"),
