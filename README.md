@@ -41,7 +41,7 @@
 | **浦源书生 (Intern)** | intern-s2-preview/intern-s1-pro/internvl3.5-241b-a28b | 学术界AI平台，多模态能力强，免费使用，其中intern-s2-preview/intern-s1-pro为**优秀OCR模型**，中文识别**非常优秀**，**十分推荐**|
 | **Kimi（月之暗面）** | kimi-k2.6/kimi-k2.5 | 月之暗面AI平台，支持视觉模型，长文本处理能力强，**支持自定义Base URL**|
 | **NVIDIA NIM** | moonshotai/kimi-k2.6 | NVIDIA高性能推理平台，视觉模型优秀，**支持自定义Base URL**|
-| **百度PaddleOCR系列** | V3/V5/VL-1.6 | 百度飞桨平台，支持多语言识别，高效准确解析文档内容，其中PaddleOCR-VL-1.6 为**顶尖OCR模型**，中外文识别**极其优秀**，**非常推荐**|
+| **百度PaddleOCR系列** | V3/V6/VL-1.6 | 百度飞桨平台，支持多语言识别，高效准确解析文档内容，其中PaddleOCR-VL-1.6 为**顶尖OCR模型**，中外文识别**极其优秀**，**非常推荐**|
 | **MinerU系列** | pipeline(默认)/vlm(推荐) /MinerU-HTML/MinerU 2.5系列（官网暂未上线，上线后支持直接调用） | 行业领先的文档解析服务商，尤其擅长处理非标准和复杂文档，拥有**顶尖OCR模型**，中外文识别**极其优秀**，**非常推荐**|
 | **小米MiMo** | mimo-v2.5/mimo-v2-omni | 小米自研AI模型，支持图片理解，**支持专属Base URL**（Code套餐用户可使用 token-plan-cn.xiaomimimo.com）|
 | **Longcat AI** | LongCat-Flash-Chat/LongCat-Flash-Thinking | 美团旗下AI平台，兼容OpenAI和Anthropic API格式，每日免费Token额度 |
