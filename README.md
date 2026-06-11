@@ -266,14 +266,14 @@
 
 ### 百度飞桨OCR
 1. 访问 [AI Studio](https://aistudio.baidu.com/account/accessToken) 获取 Access Token
-2. 支持模型：PP-OCRv5 / PaddleOCR-VL-1.6 / PP-StructureV3
+2. 支持模型：PP-OCRv6 / PaddleOCR-VL-1.6 / PP-StructureV3
 3. 已切换为异步解析模式，只需填写 Token 即可使用
 4. 每位用户每日对同一模型的解析上限为3000页，超出将返回429错误；可自行申请更多页数
 
 ### MinerU
 1. 访问 MinerU官网：(https://mineru.net/apiManage/token)
 2. 注册账号并免费获取**API TOKEN**和**模型名称**，如 pipeline（默认）/vlm(推荐) /MinerU-HTML等
-3. 每个账号每天享有 2000 页最高优先级解析额度，超过 2000 页的部分优先级降低
+3. 每个账号每天享有 600 页最高优先级解析额度，超过 600 页的部分优先级降低
 4. 单个文件大小不能超过 200MB,文件页数不超出 600 页（“批量文档”和“批量OCR”可无视此约束）
 
    
@@ -363,6 +363,7 @@
 
 
 ## 📝 版本历史
+- **v2.9.8**：百度PaddleOCR模型升级：将默认模型从PP-OCRv5升级至PP-OCRv6，API端点和请求格式保持不变，所有原有功能（文档扭曲矫正、文档方向分类、文本行方向矫正等）均可继续使用。
 - **v2.9.7b**：修复阿里云百炼平台识别速度极慢的问题：将请求方式从DashScope原生API（`/services/aigc/multimodal-generation/generation`）切换为OpenAI兼容模式（`/compatible-mode/v1/chat/completions`），与阿里云官方推荐方式一致，响应速度从数分钟降至正常水平。同时优化HTTP客户端连接复用机制，`HTTPClient`改为复用同一个opener实例，避免每次请求都重建TLS握手和TCP连接，所有平台的多API调用场景（如双通道纠错回退）均受益。
 - **v2.9.7a**：修复NVIDIA NIM平台报错 `'Api' object has no attribute '_get_ocr_prompt'` 的问题：`_send_nvidia_nim_request`方法调用了不存在的`_get_ocr_prompt()`，修正为接收上游已构建好的`prompt`参数。
 - **v2.9.7**：新增Markdown格式输出选项，所有平台均可选择以Markdown格式直接输出识别结果；PaddleOCR-VL-1.6和PP-StructureV3原生支持Markdown输出，无需裁剪即可获取完整Markdown结构；Markdown模式下保留所有符号（包括#标题），仅文字和文字+坐标模式不受影响。新增llama.cpp本地服务商支持；Ollama平台API地址开放为用户可自定义。
