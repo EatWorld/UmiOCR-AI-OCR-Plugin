@@ -122,7 +122,8 @@
 ### 1. 配置插件
 
 **首次配置（推荐一次性配置所有服务商）**：
-<img width="1174" height="859" alt="f3037bdf-a80e-40c0-a162-e1816018a079" src="https://github.com/user-attachments/assets/1ab697d6-e809-47b9-832d-a83235886e8d" />
+<img width="1189" height="870" alt="a67e0c8e-b076-45c8-947a-76c07d59619d" src="https://github.com/user-attachments/assets/ca22f3ac-81ad-45db-9d43-a0152f31ddba" />
+
 
 
 1. 在Umi-OCR中选择 "AI OCR（云端）"
