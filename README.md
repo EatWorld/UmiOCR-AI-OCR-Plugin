@@ -63,9 +63,6 @@
 
 ## 📊 对比识别效果
 
-### 设置界面
-![设置界面](docs/images/00.jpg)
-
 ### 识别图片："对于及其复杂的手写信息，也能完美识别"
 ![识别图片](docs/images/1.png)
 
@@ -125,6 +122,9 @@
 ### 1. 配置插件
 
 **首次配置（推荐一次性配置所有服务商）**：
+
+<img width="1174" height="859" alt="28a4ac24-8a77-418b-bbfe-66ef5feab4d8" src="https://github.com/user-attachments/assets/93466193-7957-4064-90cb-591c908fd5e8" />
+
 1. 在Umi-OCR中选择 "AI OCR（云端）"
 2. 在全局设置中配置所有你要使用的服务商：
    - 填写 OpenAI API密钥和模型（如需要）
