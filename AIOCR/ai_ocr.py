@@ -1890,12 +1890,22 @@ class Api:
             provider = 'openai'
             self.global_config['a_provider'] = provider
         self.global_config['provider'] = provider  # 保持向后兼容
-        
+
         print(f"AI OCR 插件初始化完成，当前服务商: {provider}")
-        
+
     def start(self, argd):
         """启动API"""
         try:
+            # 保存局部配置
+            self.local_config = argd
+
+            # 局部 a_l_provider 覆盖全局 a_provider（联动机制）
+            # a_l_provider 为空表示"跟随全局设置"，非空则覆盖全局并同步
+            local_provider = argd.get("a_l_provider", "")
+            if local_provider:
+                self.global_config["a_provider"] = local_provider
+                self.global_config["provider"] = local_provider  # 向后兼容
+
             # 获取配置（兼容新旧键名）
             provider_name = self.global_config.get("a_provider", self.global_config.get("provider", "openai"))
             
@@ -1956,9 +1966,6 @@ class Api:
             
             # 创建线程池
             self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=max_workers)
-            
-            # 保存局部配置
-            self.local_config = argd
             
             return ""
         except Exception as e:
