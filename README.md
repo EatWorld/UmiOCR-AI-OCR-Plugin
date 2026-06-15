@@ -63,6 +63,9 @@
 
 ## 📊 对比识别效果
 
+### 设置界面
+![设置界面](docs/images/00.jpg)
+
 ### 识别图片："对于及其复杂的手写信息，也能完美识别"
 ![识别图片](docs/images/1.png)
 
@@ -122,10 +125,6 @@
 ### 1. 配置插件
 
 **首次配置（推荐一次性配置所有服务商）**：
-<img width="1189" height="870" alt="a67e0c8e-b076-45c8-947a-76c07d59619d" src="https://github.com/user-attachments/assets/ca22f3ac-81ad-45db-9d43-a0152f31ddba" />
-
-
-
 1. 在Umi-OCR中选择 "AI OCR（云端）"
 2. 在全局设置中配置所有你要使用的服务商：
    - 填写 OpenAI API密钥和模型（如需要）
@@ -364,6 +363,7 @@
 
 
 ## 📝 版本历史
+- **v2.9.9**：在各功能板块的"文字识别(AI OCR)"设置顶部新增"当前AI服务商"快捷切换，默认跟随全局设置，也可直接选择服务商覆盖（选择后全局设置同步更新），无需频繁打开全局设置即可切换服务商。
 - **v2.9.8**：百度PaddleOCR模型升级：将默认模型从PP-OCRv5升级至PP-OCRv6，API端点和请求格式保持不变，所有原有功能（文档扭曲矫正、文档方向分类、文本行方向矫正等）均可继续使用。
 - **v2.9.7b**：修复阿里云百炼平台识别速度极慢的问题：将请求方式从DashScope原生API（`/services/aigc/multimodal-generation/generation`）切换为OpenAI兼容模式（`/compatible-mode/v1/chat/completions`），与阿里云官方推荐方式一致，响应速度从数分钟降至正常水平。同时优化HTTP客户端连接复用机制，`HTTPClient`改为复用同一个opener实例，避免每次请求都重建TLS握手和TCP连接，所有平台的多API调用场景（如双通道纠错回退）均受益。
 - **v2.9.7a**：修复NVIDIA NIM平台报错 `'Api' object has no attribute '_get_ocr_prompt'` 的问题：`_send_nvidia_nim_request`方法调用了不存在的`_get_ocr_prompt()`，修正为接收上游已构建好的`prompt`参数。
