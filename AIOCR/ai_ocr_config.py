@@ -656,7 +656,42 @@ globalOptions = {
 localOptions = {
     "title": tr("文字识别（AI OCR）"),
     "type": "group",
-    
+
+    # 当前AI服务商（可覆盖全局设置，a_前缀确保排在设置面板最顶部）
+    "a_l_provider": {
+        "title": tr("当前AI服务商"),
+        "default": "",
+        "optionsList": [
+            ["", tr("跟随全局设置")],
+            ["openai", "OpenAI"],
+            ["gemini", "Google Gemini"],
+            ["xai", "xAI Grok"],
+            ["openrouter", "OpenRouter"],
+            ["siliconflow", "硅基流动 (SiliconFlow)"],
+            ["doubao", "豆包 (Doubao)"],
+            ["alibaba", "阿里云百炼 (Alibaba)"],
+            ["zhipu", "智谱AI (Z.AI)"],
+            ["glm_ocr", "GLM-OCR"],
+            ["ollama", "Ollama (本地)"],
+            ["lmstudio", "LM Studio (本地)"],
+            ["llamacpp", "llama.cpp (本地)"],
+            ["groq", "Groq"],
+            ["infinigence", "无问芯穷 (Infinigence)"],
+            ["mistral", "Mistral AI"],
+            ["modelscope", "魔搭 (ModelScope)"],
+            ["mimo", "小米MiMo"],
+            ["intern", "浦源书生 (Intern)"],
+            ["kimi", "Kimi (月之暗面)"],
+            ["nvidia_nim", "NVIDIA NIM"],
+            ["mineru", "MinerU"],
+            ["paddle", "PaddleOCR (在线)"],
+            ["paddle_vl_16", "PaddleOCR-VL-1.6 (在线)"],
+            ["pp_structure_v3", "PP-StructureV3 (在线)"],
+            ["longcat", "Longcat AI"],
+        ],
+        "toolTip": tr("选择当前AI服务商。默认跟随全局设置，也可在此直接切换（切换后全局设置同步更新）。"),
+    },
+
     "dual_strategy": {
         "title": tr("识别策略"),
         "default": "ai_high_precision_with_coordinates",
