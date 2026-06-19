@@ -821,20 +821,20 @@ class GroqProvider(BaseProvider):
             raise Exception(f"解析Groq响应失败: {str(e)}")
 
 
-# 无问芯穷 Provider
-class InfinigenceProvider(BaseProvider):
-    """无问芯穷服务提供商"""
+# 腾讯混元 Provider
+class HunyuanProvider(BaseProvider):
+    """腾讯混元服务提供商 (OpenAI兼容协议)"""
 
     def get_default_api_base(self):
-        return "https://cloud.infini-ai.com/maas/v1"
+        return "https://tokenhub.tencentmaas.com/v1"
 
     def get_default_model(self):
-        return ""
+        return "hy-vision-2.0-instruct"
 
     def build_headers(self):
         return {
             "Content-Type": "application/json",
-            "Accept": "application/json, text/event-stream",
+            "Accept": "application/json",
             "Authorization": f"Bearer {self.api_key}"
         }
 
@@ -856,7 +856,6 @@ class InfinigenceProvider(BaseProvider):
                 }
             ],
             "stream": False,
-            "enable_thinking": False,
             "temperature": 0.7,
             "max_tokens": 5000
         }
@@ -870,7 +869,7 @@ class InfinigenceProvider(BaseProvider):
             else:
                 return None
         except Exception as e:
-            raise Exception(f"解析无问芯穷响应失败: {str(e)}")
+            raise Exception(f"解析腾讯混元响应失败: {str(e)}")
 
 
 # Mistral Provider
@@ -1471,7 +1470,7 @@ class ProviderFactory:
             "ollama": OllamaProvider,
             "lmstudio": LMStudioProvider,
             "groq": GroqProvider,
-            "infinigence": InfinigenceProvider,
+            "hunyuan": HunyuanProvider,
             "mistral": MistralProvider,
             "modelscope": ModelScopeProvider,
             "mimo": MiMoProvider,

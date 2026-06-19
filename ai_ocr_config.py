@@ -61,9 +61,9 @@ PROVIDER_CONFIGS = {
         "api_base": "https://api.groq.com/openai/v1",
         "model": "",  # 用户自定义
     },
-    "infinigence": {  # 无问芯穷
-        "api_base": "https://cloud.infini-ai.com/maas/v1",
-        "model": "",
+    "hunyuan": {  # 腾讯混元
+        "api_base": "https://tokenhub.tencentmaas.com/v1",
+        "model": "hy-vision-2.0-instruct",
     },
     "mistral": {
         "api_base": "https://api.mistral.ai/v1",
@@ -189,7 +189,7 @@ globalOptions = {
             ["lmstudio", "LM Studio (本地)"],
             ["llamacpp", "llama.cpp (本地)"],
             ["groq", "Groq"],
-            ["infinigence", "无问芯穷 (Infinigence)"],
+            ["hunyuan", "腾讯混元 (Hunyuan)"],
             ["mistral", "Mistral AI"],
             ["modelscope", "魔搭 (ModelScope)"],
             ["mimo", "小米MiMo"],
@@ -434,18 +434,18 @@ globalOptions = {
         "toolTip": tr("Groq视觉模型名称，如：meta-llama/llama-4-scout-17b-16e-instruct"),
     },
 
-    # 无问芯穷配置
-    "infinigence_api_key": {
-        "title": tr("无问芯穷 API密钥"),
+    # 腾讯混元配置
+    "hunyuan_api_key": {
+        "title": tr("腾讯混元 API密钥"),
         "default": "",
         "type": "text",
-        "toolTip": tr("请输入无问芯穷的API密钥"),
+        "toolTip": tr("请输入腾讯混元的API密钥"),
     },
-    "infinigence_model": {
-        "title": tr("无问芯穷 模型"),
-        "default": "MiniCPM-V-2.6",
+    "hunyuan_model": {
+        "title": tr("腾讯混元 模型"),
+        "default": "hy-vision-2.0-instruct",
         "type": "text",
-        "toolTip": tr("无问芯穷视觉模型名称，如：MiniCPM-V-2.6"),
+        "toolTip": tr("腾讯混元视觉模型名称，如：hy-vision-2.0-instruct, hunyuan-t1-vision-20250916, youtu-vita"),
     },
 
     # Mistral配置
@@ -697,7 +697,7 @@ localOptions = {
             ["lmstudio", "LM Studio (本地)"],
             ["llamacpp", "llama.cpp (本地)"],
             ["groq", "Groq"],
-            ["infinigence", "无问芯穷 (Infinigence)"],
+            ["hunyuan", "腾讯混元 (Hunyuan)"],
             ["mistral", "Mistral AI"],
             ["modelscope", "魔搭 (ModelScope)"],
             ["mimo", "小米MiMo"],

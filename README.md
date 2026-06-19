@@ -36,7 +36,7 @@
 | **OpenRouter** | qwen/qwen2.5-vl-72b-instruct:free | 统一接口，模型丰富 |
 | **Groq** | meta-llama/llama-4-maverick-17b-128e-instruct | 高性能推理，速度极快 |
 | **魔搭 (ModelScope)** | Qwen/Qwen3-VL-235B-A22B-Instruct **（强烈推荐）** | 阿里达摩院开源平台，模型丰富，免费使用|
-| **无问芯穹 (Infinigence)** | Qwen/Qwen3-VL-235B-A22B-Instruct **（强烈推荐）**| 顶尖OCR模型，中文识别优秀，免费使用|
+| **腾讯混元 (Hunyuan)** | hy-vision-2.0-instruct | 腾讯自研多模态模型，支持图片理解，OpenAI兼容协议 |
 | **Mistral AI** | mistral-ocr-latest | 欧洲AI公司，视觉模型优秀，免费使用|
 | **浦源书生 (Intern)** | intern-s2-preview/intern-s1-pro/internvl3.5-241b-a28b | 学术界AI平台，多模态能力强，免费使用，其中intern-s2-preview/intern-s1-pro为**优秀OCR模型**，中文识别**非常优秀**，**十分推荐**|
 | **Kimi（月之暗面）** | kimi-k2.6/kimi-k2.5 | 月之暗面AI平台，支持视觉模型，长文本处理能力强，**支持自定义Base URL**|
@@ -101,7 +101,6 @@
 | 🔄 **智能重试** | 自动重试机制，提高识别成功率 |
 | 🚀 **并发处理** | 支持批量图片并发识别，提高处理效率 |
 | ✏️ **自定义提示词** | 暴露提示词窗口，允许用户根据不同场景自定义识别提示词 |
-| 🎯 **双通道模式** | 本地PP-OCRv6 ONNX检测文本块 + AI识别文字内容，文字与原图位置完美对齐 |
 
 ## 📦 安装要求
 
@@ -222,10 +221,12 @@
 2. 注册账号并获取访问令牌 (Access Token)
 3. 阿里达摩院开源AI平台
 
-### 无问芯穹 (Infinigence)
-1. 访问 [无问芯穹平台](https://cloud.infini-ai.com/)
+### 腾讯混元 (Hunyuan)
+1. 访问 [腾讯混元大模型平台](https://cloud.tencent.com/product/1823)
 2. 注册账号并获取API密钥
-3. 月之暗面AI平台，长文本处理能力强
+3. 腾讯自研多模态模型，支持图片理解，兼容OpenAI协议
+4. 默认API地址：`https://tokenhub.tencentmaas.com/v1`
+5. 支持模型：hy-vision-2.0-instruct、hunyuan-t1-vision-20250916、youtu-vita 等
 
 ### Mistral AI
 1. 访问 [Mistral Platform](https://console.mistral.ai/)
@@ -380,7 +381,7 @@
 - **v2.8.0**：增加PaddleOCR-V5以及PaddleOCR-VL功能。
 - **v2.7.0**：调整双通道策略，现在双通道:AI高精度识别(含位置版)识别精度更高、识别速度速度更快。
 - **v2.6.0**：🚀 **重大更新** 完美解决大模型OCR无法文字对齐的问题！新增并完善双通道识别，通过本地PaddleOCR检测识别真实坐标，再用所用AI模型识别文本，识别文字与原图文字完美对齐！并发识别、框数限制、本地高分直接采用、裁剪补白等参数可调，整图识别速度较之前版本更快。
-- **v2.5.0**：🎉 **社区贡献更新** - 新增5个AI服务商支持！添加Groq（高性能推理）、魔搭ModelScope（阿里达摩院）、无问芯穹Infinigence（月之暗面）、Mistral AI（欧洲AI）、浦源书生Intern（学术界AI），大幅扩展AI服务商选择。优化本地服务自定义地址功能。
+- **v2.5.0**：🎉 **社区贡献更新** - 新增5个AI服务商支持！添加Groq（高性能推理）、魔搭ModelScope（阿里达摩院）、Mistral AI（欧洲AI）、浦源书生Intern（学术界AI），大幅扩展AI服务商选择。优化本地服务自定义地址功能。
 - **v2.4.0**：🚀 **重大更新** - 新增本地离线识别支持！添加Ollama、LM Studio本地服务商，支持自定义API地址，完全离线OCR成为可能。优化识别文字对齐，现在识别后的文字与原图位置只有轻微偏移。
 - **v2.3.0**：新增阿里云百炼和智谱AI支持，更新所有服务商默认模型，优化界面布局，移除重试次数配置（内置3次）
 - **v2.2.0**：支持一次性配置所有服务商，切换时无需重新输入API密钥和模型
