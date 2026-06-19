@@ -1,0 +1,25 @@
+# Python 缓存
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# 调试文件
+debug.log
+*.log
+
+# 旧版检测器（体积过大，请从 release 下载）
+paddle_detector/
+
+# IDE
+.vscode/
+.idea/
+
+# 系统
+.DS_Store
+Thumbs.db
+
+# 临时文件
+*.tmp
+*.bak
+文档.txt
