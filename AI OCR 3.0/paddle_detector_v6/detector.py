@@ -114,11 +114,13 @@ class Api:
             )
 
             # 初始化后处理
-            # PP-OCRv6 默认参数
+            # 对齐 PaddleOCR 原版默认参数：unclip_ratio=1.5，box_thresh=0.5
+            # box_thresh 降至 0.5，避免压缩后小字/淡色文字被过滤
+            # merge_y_ratio 提高到 0.5，让合并更激进，接近 v3 完整管线的行级输出
             thresh = float(local.get("det_thresh",
                                      self.global_config.get("det_thresh", 0.3)))
             box_thresh = float(local.get("det_box_thresh",
-                                         self.global_config.get("det_box_thresh", 0.6)))
+                                         self.global_config.get("det_box_thresh", 0.5)))
             unclip_ratio = float(local.get("det_unclip_ratio",
                                            self.global_config.get("det_unclip_ratio", 1.5)))
 
@@ -126,11 +128,14 @@ class Api:
                 thresh=thresh,
                 box_thresh=box_thresh,
                 unclip_ratio=unclip_ratio,
+                merge_into_lines=True,
+                merge_y_ratio=0.5,
             )
 
             print(f"[AIOCR-detector-v6] 模型加载完成: {os.path.basename(model_path)}")
             print(f"[AIOCR-detector-v6] 参数: limit_side_len={limit_side_len}, "
-                  f"thresh={thresh}, box_thresh={box_thresh}, unclip_ratio={unclip_ratio}")
+                  f"thresh={thresh}, box_thresh={box_thresh}, unclip_ratio={unclip_ratio}, "
+                  f"merge_into_lines=True")
             return ""
         except Exception as e:
             self.session = None

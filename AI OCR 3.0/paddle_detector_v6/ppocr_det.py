@@ -93,10 +93,11 @@ class DBPreProcess:
 
 
 class DBPostProcess:
-    """DB 检测模型后处理：从概率图提取文本框"""
+    """DB 检测模型后处理：从概率图提取文本框，并合并为文本行"""
 
-    def __init__(self, thresh=0.3, box_thresh=0.6, unclip_ratio=1.5,
-                 use_polygon=False, min_size=3, max_candidates=1000):
+    def __init__(self, thresh=0.3, box_thresh=0.5, unclip_ratio=1.5,
+                 use_polygon=False, min_size=3, max_candidates=1000,
+                 merge_into_lines=True, merge_y_ratio=0.5):
         """
         Args:
             thresh: 二值化阈值
@@ -105,6 +106,8 @@ class DBPostProcess:
             use_polygon: 是否使用多边形轮廓（True）或最小外接矩形（False）
             min_size: 最小文本框尺寸
             max_candidates: 最大候选框数量
+            merge_into_lines: 是否将相邻框合并为文本行
+            merge_y_ratio: 合并阈值，y中心差异 < 框高 * 此值则视为同一行
         """
         self.thresh = thresh
         self.box_thresh = box_thresh
@@ -112,6 +115,8 @@ class DBPostProcess:
         self.min_size = min_size
         self.max_candidates = max_candidates
         self.use_polygon = use_polygon
+        self.merge_into_lines = merge_into_lines
+        self.merge_y_ratio = merge_y_ratio
 
     def unclip(self, box):
         """使用 pyclipper 扩展多边形框"""
@@ -175,6 +180,104 @@ class DBPostProcess:
         box[:, 1] = box[:, 1] - ymin
         cv2.fillPoly(mask, box.round().astype(np.int32)[np.newaxis, :, :], 1)
         return cv2.mean(bitmap[ymin:ymax + 1, xmin:xmax + 1], mask)[0]
+
+    def merge_boxes_into_lines(self, results):
+        """
+        将同一行中相邻的文本框合并成文本行框。
+
+        改进策略（相比旧版贪心分组）：
+        1. 每个 box 遍历所有已有行，选择 y 中心差异最小的行归入，
+           而非只与"当前行"比较——避免因排序导致的错误分裂与级联误差。
+        2. 判定同行的阈值用 min(box_h, line_h) * merge_y_ratio，
+           比旧版滑动均值更稳定，避免大框拉松阈值后吞并邻行。
+        3. x 方向间距检查：x 间距超过 5 倍行高时不合并，
+           允许较大间距的同行框合并，减少框数接近 v3 行级输出。
+        """
+        if not results or len(results) <= 1:
+            return results
+
+        # 计算每个框的几何信息
+        infos = []
+        for r in results:
+            box = np.array(r["box"], dtype=np.float32)
+            y_center = float(np.mean(box[:, 1]))
+            height = float(np.max(box[:, 1]) - np.min(box[:, 1]))
+            x_min = float(np.min(box[:, 0]))
+            x_max = float(np.max(box[:, 0]))
+            y_min = float(np.min(box[:, 1]))
+            y_max = float(np.max(box[:, 1]))
+            infos.append({
+                "box": box,
+                "score": r["score"],
+                "y_center": y_center,
+                "height": max(height, 1.0),  # 避免除零
+                "x_min": x_min,
+                "x_max": x_max,
+                "y_min": y_min,
+                "y_max": y_max,
+            })
+
+        # 按 y 中心排序，再按 x 排序
+        infos.sort(key=lambda b: (b["y_center"], b["x_min"]))
+
+        # 行聚类：每个 box 尝试归入已有行，否则新建行
+        lines = []  # 每个元素是 list of infos
+
+        for b in infos:
+            best_line_idx = -1
+            best_y_diff = float('inf')
+
+            for idx, line in enumerate(lines):
+                # 当前行统计
+                line_y_mean = float(np.mean([x["y_center"] for x in line]))
+                line_h_mean = float(np.mean([x["height"] for x in line]))
+                min_h = min(b["height"], line_h_mean)
+
+                y_diff = abs(b["y_center"] - line_y_mean)
+
+                # 判定条件1：y 中心差异小于两者最小高度 * merge_y_ratio
+                if y_diff > min_h * self.merge_y_ratio:
+                    continue
+
+                # 判定条件2：x 方向间距不超过 5 倍行高（允许较大间距合并，减少框数）
+                line_x_min = min(x["x_min"] for x in line)
+                line_x_max = max(x["x_max"] for x in line)
+                x_gap = max(0.0, max(b["x_min"] - line_x_max, line_x_min - b["x_max"]))
+                if x_gap > line_h_mean * 5:
+                    continue
+
+                # 记录 y 差异最小的行
+                if y_diff < best_y_diff:
+                    best_y_diff = y_diff
+                    best_line_idx = idx
+
+            if best_line_idx >= 0:
+                lines[best_line_idx].append(b)
+            else:
+                lines.append([b])
+
+        # 合并每行的框为最小外接矩形
+        merged = []
+        for line in lines:
+            if len(line) == 1:
+                b = line[0]
+                merged.append({"box": b["box"].tolist(), "score": b["score"]})
+                continue
+
+            all_pts = np.vstack([b["box"] for b in line])
+            x_min = float(np.min(all_pts[:, 0]))
+            x_max = float(np.max(all_pts[:, 0]))
+            y_min = float(np.min(all_pts[:, 1]))
+            y_max = float(np.max(all_pts[:, 1]))
+            merged_box = [[x_min, y_min], [x_max, y_min],
+                          [x_max, y_max], [x_min, y_max]]
+            avg_score = float(np.mean([b["score"] for b in line]))
+            merged.append({"box": merged_box, "score": avg_score})
+
+        # 按行排序（从上到下），保证阅读顺序
+        merged.sort(key=lambda r: float(np.mean(np.array(r["box"])[:, 1])))
+
+        return merged
 
     def __call__(self, preds, original_size, resized_size):
         """
@@ -249,5 +352,9 @@ class DBPostProcess:
                 "box": expanded_box.tolist(),
                 "score": float(score),
             })
+
+        # 合并相邻框为文本行（解决单字检测问题）
+        if self.merge_into_lines and results:
+            results = self.merge_boxes_into_lines(results)
 
         return results

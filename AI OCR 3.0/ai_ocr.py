@@ -2029,7 +2029,7 @@ class Api:
             local = getattr(self, 'local_config', {}) or {}
             detector_version = global_cfg.get('a_v6_detector_version', 'v6_onnx')
             model_size = global_cfg.get('a_v6_model_size', 'small')
-            limit_side_len = int(local.get('dual_limit_side_len', 960))
+            limit_side_len = int(local.get('dual_limit_side_len', 1440))
 
             # 模型大小 -> ONNX 文件名映射
             model_file_map = {
@@ -2292,7 +2292,7 @@ class Api:
         except Exception as e:
             return {"code": 101, "data": f"[Error] {e}"}
         local = getattr(self, 'local_config', {})
-        max_boxes = int(local.get('dual_max_boxes', 30))
+        max_boxes = int(local.get('dual_max_boxes', 100))
         min_area = int(local.get('dual_min_area', 0))
         # 1) 先用Paddle识别获得文本与坐标（增加超时回退）
         paddle_timeout = int(local.get('paddle_timeout', 20))
@@ -2365,6 +2365,8 @@ class Api:
             })
         filtered.sort(key=lambda v: v['center_y'])
         if max_boxes > 0:
+            if len(filtered) > max_boxes:
+                print(f"[AIOCR] 检测到 {len(filtered)} 个框，超过最大框数 {max_boxes}，截断")
             filtered = filtered[:max_boxes]
         # 新增：提前获取语言，便于AI回退
         language = local.get("language", "auto")
@@ -2382,16 +2384,23 @@ class Api:
         language = local.get("language", "auto")
         provider_name = self.global_config.get("a_provider", self.global_config.get("provider", "openai"))
         if provider_name in ("paddle", "paddle_vl_16", "pp_structure_v3"):
-            crop_lines = self._recognize_lines_by_cropping(image_base64, filtered, language)
-            if crop_lines:
-                result_data = []
-                for idx, f in enumerate(filtered):
-                    # AI 识别失败时返回空文本，不回退到 Paddle 的识别结果（避免遮蔽）
-                    text = crop_lines[idx] if idx < len(crop_lines) and crop_lines[idx] else ""
-                    result_data.append({"text": text, "box": f["box"], "score": 1.0})
-                if result_data:
-                    return {"code": 100, "data": result_data}
-            # AI 裁剪识别失败：返回空文本框（仅保留检测坐标，不返回 Paddle 识别文本）
+            # Paddle 在线服务自带检测+识别，整图调用一次 API 即可
+            # 裁剪小图逐一发送会导致版面分析模型(PP-StructureV3/PaddleOCR-VL)返回空结果，
+            # 且 N 次异步请求极其缓慢；改为整图识别后按行顺序匹配到本地检测框
+            try:
+                ai_result = self._run_ocr(image_base64, {"output_format": "text_only", "language": language})
+                if isinstance(ai_result, dict) and ai_result.get("code") == 100 and isinstance(ai_result.get("data"), list):
+                    ai_lines = [(it.get("text") or "").strip() for it in ai_result["data"] if isinstance(it, dict)]
+                    ai_lines = [t for t in ai_lines if t]
+                    if ai_lines:
+                        result_data = []
+                        for idx, f in enumerate(filtered):
+                            text = ai_lines[idx] if idx < len(ai_lines) else ""
+                            result_data.append({"text": text, "box": f["box"], "score": 1.0})
+                        return {"code": 100, "data": result_data}
+            except Exception as e:
+                print(f"[AIOCR] Paddle整图识别失败: {e}")
+            # 整图识别失败：返回空文本框（保留检测坐标）
             return {"code": 100, "data": [{"text": "", "box": f["box"], "score": 1.0} for f in filtered]}
         lang_map = {"auto": "自动检测语言","zh": "中文","en": "英文","ja": "日文","ko":"韩文","fr":"法文","de":"德文","es":"西班牙文","ru":"俄文","ar":"阿拉伯文"}
         lang_instruction = lang_map.get(language, "自动检测语言")
@@ -2420,22 +2429,24 @@ class Api:
             response_text = self._send_request(image_base64, prompt)
             parsed = self.provider.parse_response(response_text)
             # 4.1 获取AI纠正的纯文本行（不依赖坐标结构）
+            # 注意：不做 text 非空过滤，保留空行以维持与 Paddle 框的 1:1 对齐
             text_only = self._convert_to_umi_format(parsed, {"output_format": "text_only"})
             ai_lines = []
             if isinstance(text_only, dict) and text_only.get("code") == 100 and isinstance(text_only.get("data"), list):
-                ai_lines = [item.get("text", "") for item in text_only.get("data") if isinstance(item, dict) and item.get("text")]
+                ai_lines = [item.get("text", "") for item in text_only.get("data") if isinstance(item, dict)]
             # 4.1.1 回退解析：若纯文本未提取到行，尝试解析JSON中的texts
             if not ai_lines:
                 coord_fmt = self._convert_to_umi_format(parsed, {"output_format": "with_coordinates"})
                 if isinstance(coord_fmt, dict) and coord_fmt.get("code") == 100 and isinstance(coord_fmt.get("data"), list):
-                    ai_lines = [item.get("text", "") for item in coord_fmt["data"] if isinstance(item, dict) and item.get("text")]
+                    ai_lines = [item.get("text", "") for item in coord_fmt["data"] if isinstance(item, dict)]
             print(f"[AIOCR] AI纠错行数: {len(ai_lines)} / Paddle行数: {len(filtered)}")
             bad_alignment = False
             try:
                 if len(ai_lines) == 0:
                     bad_alignment = True
                 elif len(filtered) > 0:
-                    if len(ai_lines) < int(len(filtered) * 0.8) or len(ai_lines) > int(len(filtered) * 1.2):
+                    # 收紧阈值：AI行数少于Paddle框数即触发回退（任意一行缺失都走逐框裁剪）
+                    if len(ai_lines) < len(filtered) or len(ai_lines) > int(len(filtered) * 1.2):
                         bad_alignment = True
                 if not bad_alignment and ai_lines:
                     max_len = max(len(t) for t in ai_lines if isinstance(t, str))
@@ -2445,6 +2456,21 @@ class Api:
                 bad_alignment = False
 
             if bad_alignment:
+                print(f"[AIOCR] 行数不匹配({len(ai_lines)} vs {len(filtered)})，优先尝试AI整图识别+坐标匹配")
+                # 优先走AI整图识别（快，用户反馈仅AI模式不丢内容），避免逐框裁剪卡住
+                try:
+                    ai_only_coords = self._run_ocr(image_base64, {"output_format": "with_coordinates", "language": language})
+                    if isinstance(ai_only_coords, dict) and ai_only_coords.get("code") == 100 and isinstance(ai_only_coords.get("data"), list):
+                        ai_text_count = sum(1 for it in ai_only_coords["data"] if isinstance(it, dict) and (it.get("text") or "").strip())
+                        if ai_text_count > 0:
+                            matched = self._match_ai_text_to_paddle_boxes(ai_only_coords["data"], items, max_boxes, min_area)
+                            if matched:
+                                print(f"[AIOCR] AI整图匹配成功，返回 {len(matched)} 行")
+                                return {"code": 100, "data": [{"text": m["text"], "box": m["box"], "score": m.get("score", 1.0)} for m in matched]}
+                except Exception as _e:
+                    print(f"[AIOCR] AI整图匹配失败: {str(_e)}")
+                # AI整图匹配失败，最后回退到逐框裁剪识别（慢）
+                print(f"[AIOCR] AI整图匹配失败，回退到逐框裁剪识别")
                 crop_lines = self._recognize_lines_by_cropping(image_base64, filtered, language)
                 if crop_lines:
                     result_data = []

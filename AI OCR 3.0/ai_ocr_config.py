@@ -776,12 +776,12 @@ localOptions = {
     # 新增：双通道性能优化选项
     "dual_limit_side_len": {
         "title": tr("检测分辨率"),
-        "default": 960,
+        "default": 1440,
         "min": 320,
-        "max": 2560,
+        "max": 4096,
         "unit": "px",
         "isInt": True,
-        "toolTip": tr("检测器输入图像的长边限制。值越大检测越精细但越慢；值越小检测越快但可能漏检小字。推荐 960。"),
+        "toolTip": tr("检测器输入图像的长边限制。值越大检测越精细但越慢；值越小检测越快但可能漏检小字。推荐 1440，小字密集文档可提高到 1920。"),
         "advanced": True,
     },
     "paddle_timeout": {
@@ -796,12 +796,12 @@ localOptions = {
     },
     "dual_max_boxes": {
         "title": tr("最大识别框数"),
-        "default": 30,
+        "default": 100,
         "min": 1,
-        "max": 200,
+        "max": 500,
         "unit": tr("个"),
         "isInt": True,
-        "toolTip": tr("限制需要送到AI识别的裁剪框数量，超过将截断。值越小AI识别越快，但可能漏掉部分文字。"),
+        "toolTip": tr("限制需要送到AI识别的裁剪框数量，超过将截断。值越小AI识别越快，但可能漏掉部分文字。文档识别建议 100 以上。"),
     },
     "dual_min_area": {
         "title": tr("最小框面积"),
