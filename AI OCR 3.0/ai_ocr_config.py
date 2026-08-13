@@ -122,6 +122,15 @@ PROVIDER_CONFIGS = {
         "api_base": "https://maas-api.cn-huabei-1.xf-yun.com/v2",
         "model": "xoppaddleocrv16",
     },
+    # OpenCode Go / Zen：OpenAI 兼容网关（请求发送至 {api_base}/chat/completions）
+    "opencode_go": {
+        "api_base": "https://opencode.ai/zen/go/v1",
+        "model": "grok-4.5",  # 默认视觉模型，可在设置中修改
+    },
+    "opencode_zen": {
+        "api_base": "https://opencode.ai/zen/v1",
+        "model": "kimi-k3",  # 默认视觉模型，可在设置中修改
+    },
 }
 
 # 获取服务商默认配置的辅助函数
@@ -216,6 +225,8 @@ globalOptions = {
             ["longcat", "Longcat AI"],
             ["agnes", "Agnes"],
             ["xflyun", "讯飞星辰 (MaaS)"],
+            ["opencode_go", "OpenCode Go"],
+            ["opencode_zen", "OpenCode Zen"],
 
         ],
         "toolTip": tr("选择当前要使用的AI服务商。所有服务商的配置都会保存，切换时无需重新输入。"),
@@ -666,6 +677,48 @@ globalOptions = {
         "advanced": True,
     },
 
+    # OpenCode Go 配置
+    "opencode_go_api_key": {
+        "title": tr("OpenCode Go API密钥"),
+        "default": "",
+        "type": "text",
+        "toolTip": tr("请输入OpenCode Go的API密钥（在 https://opencode.ai/auth 订阅 Go 后获取）"),
+    },
+    "opencode_go_model": {
+        "title": tr("OpenCode Go 模型"),
+        "default": "grok-4.5",
+        "type": "text",
+        "toolTip": tr("OpenCode Go模型名称（需支持图像输入的视觉模型），如：grok-4.5、glm-5.2、kimi-k3、kimi-k2.6、deepseek-v4-pro、mimo-v2.5、hy3。完整列表见 https://opencode.ai/zen/go/v1/models"),
+    },
+    "opencode_go_api_base": {
+        "title": tr("OpenCode Go API地址"),
+        "default": "https://opencode.ai/zen/go/v1",
+        "type": "text",
+        "toolTip": tr("OpenCode Go的OpenAI兼容API地址，默认：https://opencode.ai/zen/go/v1 （请求将发送到 {地址}/chat/completions）"),
+        "advanced": True,
+    },
+
+    # OpenCode Zen 配置
+    "opencode_zen_api_key": {
+        "title": tr("OpenCode Zen API密钥"),
+        "default": "",
+        "type": "text",
+        "toolTip": tr("请输入OpenCode Zen的API密钥（在 https://opencode.ai/auth 登录 Zen 后获取）"),
+    },
+    "opencode_zen_model": {
+        "title": tr("OpenCode Zen 模型"),
+        "default": "kimi-k3",
+        "type": "text",
+        "toolTip": tr("OpenCode Zen模型名称（需支持图像输入的视觉模型），如：kimi-k3、kimi-k2.6、glm-5.2、deepseek-v4-pro、minimax-m3、hy3-free。注意：仅 chat/completions 接口的模型可用于OCR；GPT/Claude/Gemini 等走 responses/messages 接口的模型暂不支持。完整列表见 https://opencode.ai/zen/v1/models"),
+    },
+    "opencode_zen_api_base": {
+        "title": tr("OpenCode Zen API地址"),
+        "default": "https://opencode.ai/zen/v1",
+        "type": "text",
+        "toolTip": tr("OpenCode Zen的OpenAI兼容API地址，默认：https://opencode.ai/zen/v1 （请求将发送到 {地址}/chat/completions）"),
+        "advanced": True,
+    },
+
     # PaddleOCR 在线配置（异步解析模式）
     "paddle_api_key": {
         "title": tr("PaddleOCR Token"),
@@ -799,6 +852,8 @@ localOptions = {
             ["longcat", "Longcat AI"],
             ["agnes", "Agnes"],
             ["xflyun", "讯飞星辰 (MaaS)"],
+            ["opencode_go", "OpenCode Go"],
+            ["opencode_zen", "OpenCode Zen"],
         ],
         "toolTip": tr("选择当前AI服务商。默认跟随全局设置，也可在此直接切换（切换后全局设置同步更新）。"),
     },

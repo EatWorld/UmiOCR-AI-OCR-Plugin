@@ -48,6 +48,8 @@
 | **Longcat AI** | LongCat-Flash-Chat/LongCat-Flash-Thinking | 美团旗下AI平台，兼容OpenAI和Anthropic API格式，每日免费Token额度 |
 | **Agnes** | agnes-2.0-flash | 兼容OpenAI API格式，支持视觉识别，响应速度快 |
 | **讯飞星辰 (MaaS)** | xoppaddleocrv16/xophunyuanocr | 讯飞开放平台MaaS服务，兼容OpenAI API格式，支持多模态视觉识别。注意模型名需用xop前缀格式 |
+| **OpenCode Go** | grok-4.5/glm-5.2/kimi-k3/deepseek-v4-pro/hy3 | OpenCode 低价订阅网关，OpenAI兼容协议，统一访问精选开源编程/视觉模型，**需选择支持图像输入的视觉模型** |
+| **OpenCode Zen** | kimi-k3/glm-5.2/deepseek-v4-pro/minimax-m3/hy3-free | OpenCode AI网关，OpenAI兼容协议，按量付费访问精选模型，**仅 chat/completions 接口的模型可用于OCR** |
 
 ### 🏠 本地服务商（离线识别）
 | 服务商 | 建议模型 | 特点 |
@@ -291,6 +293,20 @@
    - `xophunyuanocr`（HunyuanOCR）
    - DeepSeek-OCR 暂不支持 API 调用
 
+### OpenCode Go
+1. 访问 [OpenCode 控制台](https://opencode.ai/auth) 订阅 Go（首月 $5，之后 $10/月）并复制 API 密钥
+2. 兼容 OpenAI API 格式（OpenAI-compatible），统一访问精选开源编程/视觉模型
+3. 默认API地址：`https://opencode.ai/zen/go/v1`（请求发送至 `https://opencode.ai/zen/go/v1/chat/completions`）
+4. 支持模型（需选择支持图像输入的视觉模型）：grok-4.5、glm-5.2、kimi-k3、kimi-k2.6、deepseek-v4-pro、mimo-v2.5、hy3 等
+5. 完整模型列表见 `https://opencode.ai/zen/go/v1/models`
+
+### OpenCode Zen
+1. 访问 [OpenCode 控制台](https://opencode.ai/auth) 登录 Zen，添加账单信息并复制 API 密钥（按量付费）
+2. 兼容 OpenAI API 格式（OpenAI-compatible），按量付费访问精选模型
+3. 默认API地址：`https://opencode.ai/zen/v1`（请求发送至 `https://opencode.ai/zen/v1/chat/completions`）
+4. **注意：仅 chat/completions 接口的模型可用于 OCR**；GPT/Claude/Gemini 等走 responses/messages 接口的模型暂不支持。可选视觉模型：kimi-k3、kimi-k2.6、glm-5.2、deepseek-v4-pro、minimax-m3、hy3-free 等
+5. 完整模型列表见 `https://opencode.ai/zen/v1/models`
+
 ### 百度飞桨OCR
 1. 访问 [AI Studio](https://aistudio.baidu.com/account/accessToken) 获取 Access Token
 2. 支持模型：PP-OCRv6 / PaddleOCR-VL-1.6 / PP-StructureV3
@@ -390,6 +406,7 @@
 
 
 ## 📝 版本历史
+- **v3.0.8**：✨ **新增** - 添加 OpenCode Go 与 OpenCode Zen 平台支持（均为 OpenAI 兼容网关，默认地址 `https://opencode.ai/zen/go/v1` 与 `https://opencode.ai/zen/v1`，请求发送至 `{地址}/chat/completions`）。两者均复用 OpenAI 兼容协议，只需填写 API 密钥与模型名（需选择支持图像输入的视觉模型）即可使用。
 - **v3.0.7**：✨ **新增** - 新增「自定义OpenAI兼容 (Custom)」服务商（社区建议 [#35](https://github.com/EatWorld/UmiOCR-AI-OCR-Plugin/issues/35)）。可填写任意 OpenAI 兼容的 API 地址（如 vLLM、One API、new-api 中转、自建服务等），请求将发送到 `{API地址}/chat/completions`，API 密钥与模型名均可自定义。修复 i18n.csv 空行导致翻译表加载失败的问题。
 - **v3.0.6**：🚀 **重大更新** - 新增令牌桶速率限制（主动避免429限流）与API密钥池轮询（社区建议 #12）。全局设置新增"每分钟最大请求数"（0=不限制）；任意服务商的API密钥框支持填写多个密钥（逗号/分号/换行分隔）自动轮询；429重试改为指数退避。修复Linux/macOS下OCR返回空的问题（#28）：检测器不可用时自动回退AI直出，AI服务（如Ollama）始终被正常调用。
 - **v3.0.5**：🔧 **修复** - 修正讯飞星辰平台模型名：使用 xop 前缀格式（`xoppaddleocrv16`、`xophunyuanocr`），注明 DeepSeek-OCR 暂不支持 API 调用。

@@ -1520,6 +1520,8 @@ class ProviderFactory:
             "paddle_vl_16": PaddleVL16Provider,  # 新增：PaddleOCR-VL-1.6 Provider
             "pp_structure_v3": PPStructureV3Provider,  # 新增：PP-StructureV3 Provider
             "longcat": LongcatProvider,  # 新增：Longcat AI Provider
+            "opencode_go": OpenAIProvider,  # OpenCode Go（OpenAI兼容网关）
+            "opencode_zen": OpenAIProvider,  # OpenCode Zen（OpenAI兼容网关）
             "llamacpp": LlamaCppProvider,
 
         }

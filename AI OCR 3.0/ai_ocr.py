@@ -1711,6 +1711,8 @@ class ProviderFactory:
             "longcat": LongcatProvider,  # 新增：Longcat AI Provider
             "agnes": AgnesProvider,  # 新增：Agnes Provider
             "xflyun": XFlyunProvider,  # 新增：讯飞星辰 MaaS Provider
+            "opencode_go": OpenAIProvider,  # OpenCode Go（OpenAI兼容网关）
+            "opencode_zen": OpenAIProvider,  # OpenCode Zen（OpenAI兼容网关）
             "llamacpp": LlamaCppProvider,
 
         }
