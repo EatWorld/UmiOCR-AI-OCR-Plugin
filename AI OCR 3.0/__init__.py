@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # AI OCR Plugin for Umi-OCR
-# Author: Assistant
+# Author: EatWorld
 # Description: Multi-vendor AI OCR plugin supporting various AI providers
 
 from .ai_ocr import Api
@@ -12,4 +12,5 @@ PluginInfo = {
     "global_options": globalOptions,  # 全局配置项
     "local_options": localOptions,   # 局部配置项
     "api_class": Api,  # API类
+    "version": "v3.1.0",  # 插件版本号（Umi-OCR 不读取，仅供日志排查与维护）
 }

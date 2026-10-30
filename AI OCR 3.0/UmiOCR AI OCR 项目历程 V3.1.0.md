@@ -2,10 +2,10 @@
 
 > **插件目录**：`AIOCR 2/AI OCR 3.0/`
 > **适用平台**：Umi-OCR v2.0+
-> **当前版本**：v3.0.8
+> **当前版本**：v3.1.0
 > **作者**：EatWorld
 > **文档生成日期**：2026-07-03
-> **最近更新**：2026-08-13
+> **最近更新**：2026-10-31
 
 ---
 
@@ -27,8 +27,11 @@
 AIOCR 2/
 └── AI OCR 3.0/
     ├── __init__.py                # 插件入口：导出 Api 类与配置项
-    ├── ai_ocr.py                  # 核心实现：Provider 适配器、Api 类、HTTP 客户端
-    ├── ai_ocr_config.py           # 配置定义：globalOptions / localOptions / PROVIDER_CONFIGS
+    ├── ai_ocr.py                  # 核心实现：Provider 适配器、Api 类、HTTP 客户端、模型列表拉取钩子
+    ├── ai_ocr_config.py           # 配置定义：globalOptions / localOptions / PROVIDER_CONFIGS / 模型下拉生成
+    ├── model_lists.py             # 模型列表模块（v3.1.0 新增）：精选列表 / 在线拉取 / .settings 读取 / 缓存
+    ├── 刷新模型列表.bat            # 双击离线拉取各平台模型列表（v3.1.0 新增）
+    ├── model_lists_cache.json     # 在线模型列表缓存（运行时生成，用户本地文件）
     ├── i18n.csv                   # 多语言翻译表（en / zh / zh-tw / ja）
     ├── README.md                  # 用户文档
     ├── .gitignore
@@ -155,7 +158,7 @@ class BaseProvider:
     def rotate_key(self) -> str   # 多密钥池轮询（v3.0.6 新增，单密钥无副作用）
 ```
 
-**Provider 一览**（共 25 个）：
+**Provider 一览**（共 28 个类，覆盖 31 家服务商）：
 
 | 类名 | 适配服务商 | 备注 |
 | --- | --- | --- |
@@ -184,6 +187,9 @@ class BaseProvider:
 | PaddleVL16Provider | PaddleOCR-VL-1.6 | 异步任务 + layoutParsingResults |
 | PPStructureV3Provider | PP-StructureV3 | 异步任务 + 版面解析 |
 | LongcatProvider | Longcat AI | OpenAI 兼容 |
+| AgnesProvider | Agnes | OpenAI 兼容（v3.0.3） |
+| XFlyunProvider | 讯飞星辰 MaaS | OpenAI 兼容，xop 前缀模型名（v3.0.4） |
+| ModelbestProvider | 面壁智能（ModelBest） | 文档解析专用：同步 /v1/document-parse 直出 + 大图异步 /v1/document-parse/jobs 轮询；返回页面 Markdown 与真实坐标块 ocr.blocks（v3.1.0） |
 
 ### 5.2 ProviderFactory
 
@@ -448,6 +454,7 @@ CSV 格式，5 列对应 5 种语言：
 
 | 版本 | 关键变更 |
 | --- | --- |
+| v3.1.0 | 🚀 新增面壁智能（ModelBest）文档解析平台（MiniCPM-OCR-1.0）；全局设置"模型"字段升级为可在线拉取的下拉菜单（model_lists.py）；修复 i18n 表头异常致 zh/ja 回落英文；刷新各平台建议模型 |
 | v3.0.8 | ✨ 新增 OpenCode Go 与 OpenCode Zen 平台（均为 OpenAI 兼容网关，新增 opencode_go / opencode_zen 服务商） |
 | v3.0.7 | ✨ 新增「自定义OpenAI兼容 (Custom)」服务商（#35）+ 修复 i18n.csv 空行导致翻译表加载失败 |
 | v3.0.6 | 🚀 令牌桶限速（主动避免429，#12）+ API密钥池轮询（#12）+ Linux检测器不可用时回退AI直出（#28） |
@@ -483,6 +490,64 @@ CSV 格式，5 列对应 5 种语言：
 ### 11.3 历次开发与优化详情
 
 > 以下按版本倒序记录每次开发与优化的动机、改动与影响。
+
+#### v3.1.0（2026-10）—— 🚀 面壁智能平台 + 模型下拉菜单与在线列表获取
+**一、新增面壁智能（ModelBest）平台支持**
+- **动机**：面壁智能推出新一代在线文档解析模型 MiniCPM-OCR-1.0（platform.modelbest.ai），可识别文字、表格、公式、印章与版面并返回坐标，与插件的文档解析类平台（MinerU/Paddle VL）定位一致。
+- **接口**（官方 Document Parsing API）：
+  - 同步：`POST {base}/v1/document-parse`，JSON `{"model", "image"(base64/dataURI), "upright", "recognize_seal"}`，单图直出（JSON body ≤32MiB）；
+  - 异步：`POST {base}/v1/document-parse/jobs`（multipart），HTTP 202 返回 `{id: "ocr_...", status}`；轮询 `GET .../jobs/{id}`（1~2s，终态 Success/Failed/Cancelled）；原始图 >20MiB 时自动切换异步（base64 膨胀逼近 32MiB 上限），400/413 也回退异步重试；
+  - 响应：`choices[0].message.content` = 页面 Markdown（表格 HTML、公式 LaTeX）；`ocr.blocks[]` = `{order, label, bbox[x1,y1,x2,y2], content, status}` 真实坐标块，`ocr.image_width/height` 为坐标系尺寸。
+- **实现**（`ModelbestProvider` + `Api._send_modelbest_request`）：
+  - parse_response 返回归一化页面字典 `{"__modelbest__": page}`（不落实例状态，多图并发线程安全）；
+  - `_convert_modelbest_page` 按输出格式分发：markdown → 整页 Markdown；text_only / with_coordinates → `_parse_modelbest_blocks` 直接消费真实坐标块（按 order 排序、跳过 failed/skipped 块、bbox 先线性归一到发送图坐标系再经 `_map_coordinates_to_original` 映射回原图）；
+  - `runBase64` 中 modelbest 走原生路径：含坐标策略不再经过本地检测+裁剪（文档解析自带块坐标），markdown 直出；
+  - 鉴权 Bearer MAP API Key；默认地址 `https://api.modelbest.ai`；默认模型 `MiniCPM-OCR-1.0`；
+  - 局部设置新增「文档自适应旋转」（默认开，精确坐标建议关）与「印章内容识别」（默认开）。
+
+**二、全局设置"模型"字段升级为下拉菜单 + 在线获取模型列表**
+- **动机**：各平台模型迭代快，手填模型名易错易旧；希望像"当前AI服务商"一样下拉选择，且能自动获得平台最新模型列表，同时不破坏手动输入与旧配置兼容。
+- **Umi-OCR 配置系统约束**（逆向确认）：插件配置字典在启动时一次性传入 QML，枚举项候选列表静态；**枚举校验会把不在候选内的已存值重置为默认**——因此直接把模型字段改成枚举会丢用户配置。
+- **方案**（`model_lists.py` + 配置生成 + 拉取钩子三层）：
+  1. `model_lists.py` 新模块：内置精选列表 `MODEL_CURATED_LISTS`；`read_saved_ui_settings()` 解析 `UmiOCR-data/.settings`（QSettings INI 反转义，提取 `ocr.AIOCR.*` 短键名）；`build_model_options()` 合成候选 = 精选 + 在线缓存 + 已存值（原样+strip 双份兜底）+「自定义」；缓存文件 `model_lists_cache.json`；
+  2. `ai_ocr_config.py` 导入时执行 `_upgrade_model_items_to_dropdown()`：把各平台 `{p}_model` 文本项原地转为枚举（移除显式 type:"text"，否则 QML 不按枚举渲染），默认值不在候选内时修正，并自动生成 `{p}_model_custom` 手填框（advanced，QVariantMap 字母序天然紧跟 model 项）；
+  3. `Api.start()` 模型解析：`__custom__` → 取 `{p}_model_custom`（空则回退平台默认）；旧手填值原样透传，完全向后兼容；
+  4. **在线拉取**：地址归一化与调用规则一致——Gemini（含 generativelanguage.googleapis.com）从裸 base、`/models`、完整 `:generateContent` 端点归一到列表端点并过滤 `supportedGenerationMethods` 含 generateContent 的模型；Ollama（/api 结尾或 :11434）走 `/api/tags` 无需密钥；其余 OpenAI 兼容 `GET {base}/models`（Bearer，容许 /chat/completions 后缀；裸域名如面壁智能自动补 /v1）；
+  5. **按钮热刷新**（核心无侵入）：插件导入时检测核心 Configs.qml 是否支持"按钮 onClicked 字符串 → callPy"分发，且把 `aioFetchModels` / `aioFetchAllModels` 猴子补丁挂载到核心 `MissionOCR`（callPy 以 `method(*args)` 调用实例属性函数，无自动绑定，故为无参函数）；后台线程拉取后经主线程 QObject 通知器（QMetaObject.invokeMethod 队列回主线程）弹窗汇总，并重赋 `configDict.ocr` + 发布 `<<settingsReload>>` 实现下拉菜单即时刷新；核心不支持时按钮不渲染，用户可用 `刷新模型列表.bat`（调用 Umi-OCR 自带 runtime/python.exe 运行 `model_lists.py`）离线拉取，重启后生效。
+
+**四、下拉弹层与枚举匹配补丁（核心 Configs.qml，维护者本地安装；原版核心不受影响）**
+- **动机**：v3.1.0 模型下拉菜单上线后暴露三个 UI 问题——①候选项含首尾换行/空白的历史残值会把 ComboBox 文字撑成两行、与相邻行重叠（截图实锤：百炼残值 `qwen3-vl-235b-a22b-instructqwe n3.7-plus
+`）；②候选上百条时弹层不限高，体验差；③Qt 默认滚动条极细，点不到也拖不动；④"自定义（手动输入）"的真实输入框随「高级」隐藏，指引不显眼。
+- **核心补丁**（Configs.qml，改前备份 `Configs.qml.bak_v3.1.0`）：
+  1. `initConfigDict` 枚举校验增加宽容匹配：精确匹配失败且值为字符串时，用 `trim()` 后的值再匹配一次，命中则采用去空白值——历史残值不重置、显示与调用均为干净值；
+  2. `compEnum` 的 ComboBox 增加 `popup` 定义：高度上限约 12 行（`size_.line * 12`）、`margins: 4` 使底部空间不足时自动上翻、`ListView + ScrollBar.vertical(AlwaysOn, 宽14, 可点击拖动)`；
+  3. 候选项 delegate 高度随内容自适应，长模型名 `wrapMode: WrapAnywhere` 自动折行（用户反馈"缺少换行"：弹层不再把长名挤成一行）；收起状态的选中值 `elide: ElideMiddle` 中间省略，不再撑出行外。
+- **插件侧配套**：`build_model_options()` 合并已存值时统一去首尾空白后再入列（不再"原样+去空白"双份入列，消除弹层中两个视觉相同的候选）；含内部换行/制表的残值不入列（首枚举校验失败自动回退默认值，残值自愈）；每个平台「模型」下拉框悬停提示末尾追加自定义手填指引（含「高级」开关说明），对应新增 i18n 词条。
+- **README**：「1.5 模型下拉菜单与在线获取」新增「★ 如何手填自定义模型（详细步骤，必读）」与「弹层与滚动条」小节。
+
+**三、其他修复与刷新**
+- 修复 i18n.csv 首行为 Excel 误存垃圾表头导致 Translator 语言索引失效：简体中文（langCode="zh"）与日语界面一直回落到英文列；去除垃圾行后 zh/en/zh-tw/ja 全部正确索引。
+- 刷新各平台建议模型：硅基流动 Qwen2.5-VL 全系 / Qwen3-VL-235B / PaddleOCR-VL(1.0) 已于 2026-04 下线，改为 PaddlePaddle/PaddleOCR-VL-1.5（免费）与 Qwen3-VL-32B 等；豆包默认改 doubao-seed-2-0-pro；OpenRouter 免费视觉模型更新（kimi-k2.6:free、nemotron-3.5-super-vl:free 等）。
+- 修复 llama.cpp 无密钥被误报「API密钥不能为空」（与配置项"可留空"说明一致）。
+
+**五、模型列表获取修正与自动补拉（v3.1.0 追加，用户实测反馈）**
+- **问题**：用户使用自定义 OpenAI 兼容平台（本地反代 `http://127.0.0.1:3066/v1`，其他 AI 软件均可用）却拉不到模型列表，怀疑下拉是纯内置列表而非实时获取。根因：`fetch_all_configured` 的跳过门槛只放行"有密钥或本地三平台"，`custom_openai` 无密钥（本地反代通常不设密钥）被误跳过——端点本身实测正常（GET /v1/models 返回 56 个模型）。
+- **修正**：跳过门槛改为"有密钥 OR 本地平台 OR **API 地址被用户改写过**（自建/反代/中转，无密钥也尝试）"；跳过提示改为"未配置 API 密钥且未自定义 API 地址"。
+- **自动补拉**：新增 `_auto_fetch_missing_models()`——首次「应用修改」某平台时后台补拉一次其在线模型列表（已有缓存的平台不打扰；失败静默，每平台每进程仅一次），拉取成功经通知器弹窗并热刷新下拉菜单。`_notify_fetch`/`_refresh_dropdowns` 由 `_aio_fetch_async` 内部闭包提升为模块级 `_aio_notify_fetch`/`_aio_refresh_dropdowns` 供复用。
+- **验证**：实测无密钥拉取用户反代成功（56 模型入缓存并合并进「自定义OpenAI兼容」下拉，57 个候选）；回归 47/47。
+
+**六、热刷新空转修复 + 在线列表强制优先 + 书生平台域名变更（v3.1.0 追加）**
+- **热刷新空转（关键修复）**：最小 QML 环境实测证实——QML `property var` 从 Python 侧链式赋值（`gc.configDict.ocr = ...`）直接抛 AttributeError（对象属性须以 property() 访问，var 值包装为 QJSValue），异常被吞导致此前的"热刷新"完全是空操作，下拉菜单只能靠重启更新。修复：`refreshDropdowns` 改为 `gc.property("configDict").toVariant()` → 更新 ocr 键 → `gc.setProperty("configDict", 整表)` 写回 → `qmlapp.property("pubSub").publish_("<<settingsReload>>")`；notify 弹窗同样改经 property() 取 popup 对象；`_capture_qmlapp` 改用 `metaObject().indexOfProperty()` 判存在（对象型 var 属性取值行为跨版本不稳，元对象查询最稳）。全部机制先经最小 QML 环境（QGuiApplication + engine.load 内存 QML）逐项验证。
+- **在线列表强制优先**：`build_model_options` 改为——已成功拉取在线列表的平台，候选仅由"在线列表 + 已存值 + 自定义"组成，**不再混入内置精选**；未拉取过的平台以内置精选 + 默认值引导（首次应用自动补拉后热刷新替换为纯在线列表）。`_upgrade_model_items_to_dropdown` 重构为可重入的 `rebuild_model_options()`（热刷新复用；指引追加用进程内标记防重——tr 译文随语言变化，文本标记在非中文语言下会失效导致重复追加）。
+- **缓存并发写坏（连带发现）**：测试中多个自动补拉线程并发"读-合并-写" `model_lists_cache.json`，读到半截文件 JSON 解析失败后以空表覆盖，全量缓存被清空。修复：`save_model_list_cache` 全程持 `_CACHE_LOCK`（RLock）+ 临时文件 `os.replace` 原子替换。
+- **书生平台域名变更**：API 地址更新为 `https://discovery-api.intern-ai.org.cn/v1`（2026-10 起启用，旧地址停用）；新增「浦源书生 API地址」高级配置项；文档与提示注明 RPM 限额（生成模型 50 次/分钟、决策模型 200 次/分钟，所有 Key 共享额度），建议配合"每分钟最大请求数"≈40；精选列表更新为 intern-latest / intern-s2-preview / intern-s1-pro / internvl3.5-241b-a28b。
+
+### 七、发布记录（v3.1.0）
+- **发布版本**：v3.1.0（`PluginInfo` 新增 `version: "v3.1.0"` 字段，便于日志排查）。
+- **发布内容**：本文第 11.3 节 v3.1.0 条目全部内容——面壁智能（ModelBest）平台、模型下拉菜单与在线获取（在线列表强制优先 / 自定义地址免密钥拉取 / 首次应用自动补拉 / 热刷新修复 / 缓存并发写保护）、书生平台域名变更与 RPM 限额、核心界面补丁（弹层限高/滚动条/折行/省略/枚举宽容匹配）、i18n 表头修复、各平台建议模型刷新、llama.cpp 免密钥修复。
+- **用户实测确认**（2026-10-31）：全部平台在线拉取正常；自定义 OpenAI 兼容反代（`http://127.0.0.1:3066/v1`）实拉 56 个模型；书生新域名实拉 13 个模型（旧密钥在新域名失效，更换新密钥后恢复——迁移提示已写入 README）。
+- **随版本文件**：`model_lists.py`（新增）、`刷新模型列表.bat`（新增）、`ai_ocr.py` / `ai_ocr_config.py` / `i18n.csv` / `README.md` / `__init__.py`（更新）。
+- **注意**：核心界面补丁（Configs.qml：弹层限高/加宽滚动条/长名折行/中间省略/枚举宽容匹配）**不随插件分发**，仅维护者本地安装（改前备份 `Configs.qml.bak_v3.1.0`）；原版 Umi-OCR 用户功能完整可用，仅下拉弹层为 Qt 默认样式。
 
 #### v3.0.8（2026-08）—— ✨ 新增 OpenCode Go 与 OpenCode Zen 平台
 - **动机**：社区希望接入 OpenCode 提供的 Go（低价订阅网关）与 Zen（按量付费 AI 网关）模型，二者均提供 OpenAI 兼容的 `chat/completions` 接口。
@@ -659,6 +724,7 @@ CSV 格式，5 列对应 5 种语言：
 修改 `localOptions` 中的 `dual_limit_side_len` / `paddle_timeout` / `dual_max_boxes` 等项，或在 `paddle_detector_v6/detector.py` 的 `start()` 中调整 `det_thresh` / `det_box_thresh` / `det_unclip_ratio` / `merge_y_ratio` 的默认值。
 
 ### 12.3 自定义 Prompt
+> v3.1.0 起新增支持模型列表的平台只需在 `model_lists.py` 的 `PROVIDER_LIST_RULES` 登记获取方式（openai / gemini / ollama 三类）并在 `MODEL_CURATED_LISTS` 给出精选列表，模型下拉菜单即自动生效。
 
 直接在 Umi-OCR 设置面板修改 `a_prompt_text_only` / `a_prompt_with_coordinates` / `a_prompt_markdown`，模板中 `{language}` 占位符会被当前识别语言自动替换。
 

@@ -23,3 +23,10 @@ Thumbs.db
 *.tmp
 *.bak
 文档.txt
+
+# 模型列表在线缓存（用户本地生成）
+model_lists_cache.json
+**/model_lists_cache.json
+
+# 工具本地数据
+.workbuddy/

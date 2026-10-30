@@ -1,164 +1,207 @@
-Column1,Column2,Column3,Column4,Column5,列1,列2,列3,列4,列5,Column11,Column12,Column13,Column14
-key,en,zh,zh-tw,ja,,,,,,,,,
-AI OCR 设置,AI OCR Settings,AI OCR 设置,AI OCR 設置,AI OCR 設定,,,,,,,,,
-纯文字识别 Prompt,Text-only OCR Prompt,纯文字识别 Prompt,純文字識別 Prompt,テキストのみOCRプロンプト,,,,,,,,,
-纯文字识别模式的提示词模板，{language}会被替换为当前识别语言。留空则使用默认模板。,Prompt template for text-only mode. {language} will be replaced with the current recognition language. Leave empty to use the default template.,纯文字识别模式的提示词模板，{language}会被替换为当前识别语言。留空则使用默认模板。,純文字識別模式的提示詞模板，{language}會被替換為當前識別語言。留空則使用默認模板。,テキストのみモードのプロンプトテンプレート。{language}は現在の認識言語に置換されます。空欄の場合はデフォルトテンプレートを使用します。,,,,,,,,,
-含坐标识别 Prompt,OCR Prompt with Coordinates,含坐标识别 Prompt,含坐標識別 Prompt,座標付きOCRプロンプト,,,,,,,,,
-含坐标识别模式的提示词模板，{language}会被替换为当前识别语言。留空则使用默认模板。,Prompt template for coordinate mode. {language} will be replaced with the current recognition language. Leave empty to use the default template.,含坐标识别模式的提示词模板，{language}会被替换为当前识别语言。留空则使用默认模板。,含坐標識別模式的提示詞模板，{language}會被替換為當前識別語言。留空則使用默認模板。,座標付きモードのプロンプトテンプレート。{language}は現在の認識言語に置換されます。空欄の場合はデフォルトテンプレートを使用します。,,,,,,,,,
-当前AI服务商,Current AI Provider,当前AI服务商,當前AI服務商,現在のAIプロバイダー,,,,,,,,,
-选择当前要使用的AI服务商。所有服务商的配置都会保存，切换时无需重新输入。,Select the current AI service provider to use. All provider configurations are saved and switching doesn't require re-entering credentials.,选择当前要使用的AI服务商。所有服务商的配置都会保存，切换时无需重新输入。,選擇當前要使用的AI服務商。所有服務商的配置都會保存，切換時無需重新輸入。,現在使用するAIサービスプロバイダーを選択してください。すべてのプロバイダー設定が保存され、切り替え時に再入力は不要です。,,,,,,,,,
-跟随全局设置,Follow Global Setting,跟随全局设置,跟隨全局設置,グローバル設定に従う,,,,,,,,,
-选择当前AI服务商。默认跟随全局设置，也可在此直接切换（切换后全局设置同步更新）。,Select the current AI provider. Defaults to global setting; you can also switch here (global setting will be synced).,选择当前AI服务商。默认跟随全局设置，也可在此直接切换（切换后全局设置同步更新）。,選擇當前AI服務商。默認跟隨全局設置，也可在此直接切換（切換後全局設置同步更新）。,現在のAIプロバイダーを選択。デフォルトはグローバル設定に従います。ここで切り替えも可能（グローバル設定と同期）。,,,,,,,,,
-请求超时,Request Timeout,请求超时,請求超時,リクエストタイムアウト,,,,,,,,,
-秒,seconds,秒,秒,秒,,,,,,,,,
-API请求的超时时间。,Timeout duration for API requests.,API请求的超时时间。,API請求的超時時間。,APIリクエストのタイムアウト時間。,,,,,,,,,
-阿里云百炼 API密钥,Alibaba API Key,阿里云百炼 API密钥,阿里雲百煉 API密鑰,Alibaba APIキー,,,,,,,,,
-请输入阿里云百炼的API密钥,Please enter Alibaba API key,请输入阿里云百炼的API密钥,請輸入阿里雲百煉的API密鑰,AlibabaのAPIキーを入力してください,,,,,,,,,
-阿里云百炼 模型,Alibaba Model,阿里云百炼 模型,阿里雲百煉 模型,Alibaba モデル,,,,,,,,,
-阿里云百炼模型名称，如：qwen3-vl-235b-a22b-instruct,Alibaba model name such as: qwen3-vl-235b-a22b-instruct,阿里云百炼模型名称，如：qwen3-vl-235b-a22b-instruct,阿里雲百煉模型名稱，如：qwen3-vl-235b-a22b-instruct,Alibabaモデル名、例：qwen3-vl-235b-a22b-instruct,,,,,,,,,
-豆包 API密钥,Doubao API Key,豆包 API密钥,豆包 API密鑰,Doubao APIキー,,,,,,,,,
-请输入豆包的API密钥,Please enter Doubao API key,请输入豆包的API密钥,請輸入豆包的API密鑰,DoubaoのAPIキーを入力してください,,,,,,,,,
-豆包 模型,Doubao Model,豆包 模型,豆包 模型,Doubao モデル,,,,,,,,,
-豆包模型名称，如：doubao-seed-1-6-250615,Doubao model name such as: doubao-seed-1-6-250615,豆包模型名称，如：doubao-seed-1-6-250615,豆包模型名稱，如：doubao-seed-1-6-250615,Doubaoモデル名、例：doubao-seed-1-6-250615,,,,,,,,,
-Gemini API密钥,Gemini API Key,Gemini API密钥,Gemini API密鑰,Gemini APIキー,,,,,,,,,
-请输入Google Gemini的API密钥,Please enter Google Gemini API key,请输入Google Gemini的API密钥,請輸入Google Gemini的API密鑰,Google GeminiのAPIキーを入力してください,,,,,,,,,
-Gemini 模型,Gemini Model,Gemini 模型,Gemini 模型,Gemini モデル,,,,,,,,,
-Gemini模型名称，如：gemini-2.5-flash, gemini-1.5-pro,Gemini model name such as: gemini-2.5-flash, gemini-1.5-pro,Gemini模型名称，如：gemini-2.5-flash,,,,,,,,,
-OpenAI API密钥,OpenAI API Key,OpenAI API密钥,OpenAI API密鑰,OpenAI APIキー,,,,,,,,,
-请输入OpenAI的API密钥,Please enter OpenAI API key,请输入OpenAI的API密钥,請輸入OpenAI的API密鑰,OpenAIのAPIキーを入力してください,,,,,,,,,
-OpenAI 模型,OpenAI Model,OpenAI 模型,OpenAI 模型,OpenAI モデル,,,,,,,,,
-OpenAI模型名称，如：gpt-5-mini, gpt-4o,OpenAI model name such as: gpt-5-mini, gpt-4o,OpenAI模型名称，如：gpt-5-mini,,,,,,,,,
-OpenRouter API密钥,OpenRouter API Key,OpenRouter API密钥,OpenRouter API密鑰,OpenRouter APIキー,,,,,,,,,
-请输入OpenRouter的API密钥,Please enter OpenRouter API key,请输入OpenRouter的API密钥,請輸入OpenRouter的API密鑰,OpenRouterのAPIキーを入力してください,,,,,,,,,
-OpenRouter 模型,OpenRouter Model,OpenRouter 模型,OpenRouter 模型,OpenRouter モデル,,,,,,,,,
-OpenRouter模型名称，如：qwen/qwen2.5-vl-72b-instruct:free,qwen/qwen2.5-vl-72b-instruct:free,OpenRouter model name such as: qwen/qwen2.5-vl-72b-instruct:free,qwen/qwen2.5-vl-72b-instruct:free,OpenRouter模型名称，如：qwen/qwen2.5-vl-72b-instruct:free,,,,,,,,,
-硅基流动 API密钥,SiliconFlow API Key,硅基流动 API密钥,硅基流動 API密鑰,SiliconFlow APIキー,,,,,,,,,
-请输入硅基流动的API密钥,Please enter SiliconFlow API key,请输入硅基流动的API密钥,請輸入硅基流動的API密鑰,SiliconFlowのAPIキーを入力してください,,,,,,,,,
-硅基流动 模型,SiliconFlow Model,硅基流动 模型,硅基流動 模型,SiliconFlow モデル,,,,,,,,,
-硅基流动模型名称，如：Qwen/Qwen2.5-VL-72B-Instruct, Qwen/Qwen2.5-VL-72B-Instruct,SiliconFlow model name such as: Qwen/Qwen2.5-VL-72B-Instruct, Qwen/Qwen2.5-VL-72B-Instruct,硅基流动模型名称，如：Qwen/Qwen2.5-VL-72B-Instruct,,,,,,,,,
-xAI API密钥,xAI API Key,xAI API密钥,xAI API密鑰,xAI APIキー,,,,,,,,,
-请输入xAI的API密钥,Please enter xAI API key,请输入xAI的API密钥,請輸入xAI的API密鑰,xAIのAPIキーを入力してください,,,,,,,,,
-xAI 模型,xAI Model,xAI 模型,xAI 模型,xAI モデル,,,,,,,,,
-xAI模型名称，如：grok-4,xAI model name such as: grok-4,xAI模型名称，如：grok-4,xAI模型名稱，如：grok-4,xAIモデル名、例：grok-4,,,,,,,,,
-智谱AI API密钥,ZhipuAI API Key,智谱AI API密钥,智譜AI API密鑰,ZhipuAI APIキー,,,,,,,,,
-请输入智谱AI的API密钥,Please enter ZhipuAI API key,请输入智谱AI的API密钥,請輸入智譜AI的API密鑰,ZhipuAIのAPIキーを入力してください,,,,,,,,,
-智谱AI 模型,ZhipuAI Model,智谱AI 模型,智譜AI 模型,ZhipuAI モデル,,,,,,,,,
-智谱AI模型名称，如：glm-4.5v,ZhipuAI model name such as: glm-4.5v,智谱AI模型名称，如：glm-4.5v,智譜AI模型名稱，如：glm-4.5v,ZhipuAIモデル名、例：glm-4.5v,,,,,,,,,
-GLM-OCR API密钥,GLM-OCR API Key,GLM-OCR API密钥,GLM-OCR API密鑰,GLM-OCR APIキー,,,,,,,,,
-请输入GLM-OCR的API密钥,Please enter GLM-OCR API key,请输入GLM-OCR的API密钥,請輸入GLM-OCR的API密鑰,GLM-OCRのAPIキーを入力してください,,,,,,,,,
-GLM-OCR 模型,GLM-OCR Model,GLM-OCR 模型,GLM-OCR 模型,GLM-OCR モデル,,,,,,,,,
-GLM-OCR模型名称，如：glm-ocr,GLM-OCR model name such as: glm-ocr,GLM-OCR模型名称，如：glm-ocr,GLM-OCR模型名稱，如：glm-ocr,GLM-OCRモデル名、例：glm-ocr,,,,,,,,,
-LM Studio API地址,LM Studio API URL,LM Studio API地址,LM Studio API位址,LM Studio API URL,,,,,,,,,
-LM Studio服务地址，如：http://localhost:1234/v1 或 http://192.168.1.100:1234/v1,LM Studio service URL, e.g., http://localhost:1234/v1 or http://192.168.1.100:1234/v1,LM Studio服務地址，如：http://localhost:1234/v1 或 http://192.168.1.100:1234/v1,,,,,,,,,
-LM Studio API密钥,LM Studio API Key,LM Studio API密钥,LM Studio API金鑰,LM Studio APIキー,,,,,,,,,
-LM Studio本地API密钥（可选，本地服务通常不需要）,LM Studio local API key (optional, usually not needed for local services),LM Studio本地API金鑰（可選，本地服務通常不需要）,LM StudioローカルAPIキー（オプション、ローカルサービスでは通常不要）,,,,,,,,,
-LM Studio 模型,LM Studio Model,LM Studio 模型,LM Studio 模型,LM Studio モデル,,,,,,,,,
-LM Studio模型名称，如：llava, llava-1.5-7b-hf,LM Studio model name, e.g., llava,,,,,,,,,
-Ollama API地址,Ollama API URL,Ollama API地址,Ollama API位址,Ollama API URL,,,,,,,,,
-Ollama服务地址，如：http://localhost:11434/api 或 http://192.168.1.100:11434/api,Ollama service URL, e.g., http://localhost:11434/api or http://192.168.1.100:11434/api,Ollama服務位址，如：http://localhost:11434/api 或 http://192.168.1.100:11434/api,,,,,,,,,
-Ollama API密钥,Ollama API Key,Ollama API密钥,Ollama API金鑰,Ollama APIキー,,,,,,,,,
-Ollama本地API密钥（可选，本地服务通常不需要）,Ollama local API key (optional, usually not needed for local services),Ollama本地API金鑰（可選，本地服務通常不需要）,OllamaローカルAPIキー（オプション、ローカルサービスでは通常不要）,,,,,,,,,
-Ollama 模型,Ollama Model,Ollama 模型,Ollama 模型,Ollama モデル,,,,,,,,,
-Ollama模型名称，如：llava, llava:7b, bakllava,Ollama model name, e.g.,,,,,, bakllava,Ollamaモデル名、例：llava, llava:7b, bakllava
-Groq API密钥,Groq API Key,Groq API密钥,Groq API金鑰,Groq APIキー,,,,,,,,,
-请输入Groq的API密钥,Please enter Groq API key,請輸入Groq的API金鑰,GroqのAPIキーを入力してください,,,,,,,,,,
-Groq 模型,Groq Model,Groq 模型,Groq 模型,Groq モデル,,,,,,,,,
-Groq模型名称，如：llama-3.3-70b-versatile, gemma2-9b-it,Groq model name, e.g., llama-3.3-70b-versatile,,,,,,,,,
-无问芯穷 API密钥,Infinigence API Key,无问芯穷 API密钥,無問芯窮 API金鑰,Infinigence APIキー,,,,,,,,,
-请输入无问芯穷的API密钥,Please enter Infinigence API key,請輸入無問芯窮的API金鑰,InfinigenceのAPIキーを入力してください,,,,,,,,,,
-无问芯穷 模型,Infinigence Model,无问芯穷 模型,無問芯窮 模型,Infinigence モデル,,,,,,,,,
-无问芯穷模型名称，如：qwen3-vl-235b-a22b-instruct,qwen3-vl-235b-a22b-instruct,qwen3-vl-235b-a22b-instruct,"Infinigence model name, e.g., qwen3-vl-235b-a22b-instruct, glm-4.5v, qwen2.5-vl-72b-instruct",無問芯窮模型名稱，如：qwen3-vl-235b-a22b-instruct,,,,,,,,,
-Mistral API密钥,Mistral API Key,Mistral API密钥,Mistral API金鑰,Mistral APIキー,,,,,,,,,
-请输入Mistral的API密钥,Please enter Mistral API key,請輸入Mistral的API金鑰,MistralのAPIキーを入力してください,,,,,,,,,,
-Mistral 模型,Mistral Model,Mistral 模型,Mistral 模型,Mistral モデル,,,,,,,,,
-Mistral视觉模型名称，如：pixtral-12b-2409, mistral-large-latest,"Mistral vision model name, e.g., pixtral-12b-2409, mistral-large-latest",Mistral視覺模型名稱，如：pixtral-12b-2409, mistral-large-latest,,,,,,,,,
-魔搭 API密钥,ModelScope API Key,魔搭 API密钥,魔搭 API金鑰,ModelScope APIキー,,,,,,,,,
-请输入魔搭的访问令牌 (Access Token),Please enter ModelScope Access Token,請輸入魔搭的訪問令牌 (Access Token),ModelScopeのアクセストークンを入力してください,,,,,,,,,,
-魔搭 模型,ModelScope Model,魔搭 模型,魔搭 模型,ModelScope モデル,,,,,,,,,
-魔搭模型ID，如：Qwen/Qwen2.5-VL-72B-Instruct,qwen3-vl-235b-a22b-instruct,"ModelScope model ID, e.g., Qwen/Qwen2.5-VL-72B-Instruct,qwen3-vl-235b-a22b-instruct",魔搭模型ID，如：Qwen/Qwen2.5-VL-72B-Instruct,qwen3-vl-235b-a22b-instruct,,,,,,,,,
-小米MiMo API密钥,Xiaomi MiMo API Key,小米MiMo API密钥,小米MiMo API金鑰,Xiaomi MiMo APIキー,,,,,,,,,
-请输入小米MiMo平台的API密钥,Please enter Xiaomi MiMo API key,请输入小米MiMo平台的API密钥,請輸入小米MiMo平台的API金鑰,Xiaomi MiMoのAPIキーを入力してください,,,,,,,,,,
-小米MiMo 模型,Xiaomi MiMo Model,小米MiMo 模型,小米MiMo 模型,Xiaomi MiMo モデル,,,,,,,,,
-MiMo视觉模型名称，如：mimo-v2.5, mimo-v2-omni,"MiMo vision model name, e.g., mimo-v2.5, mimo-v2-omni",MiMo視覺模型名稱，如：mimo-v2.5, mimo-v2-omni,MiMoビジョンモデル名、例：mimo-v2.5, mimo-v2-omni,,,,,,,,,
-浦源书生 API密钥,Intern API Key,浦源书生 API密钥,浦源書生 API金鑰,Intern APIキー,,,,,,,,,
-请输入浦源书生的API密钥,Please enter Intern API key,請輸入浦源書生的API金鑰,InternのAPIキーを入力してください,,,,,,,,,,
-浦源书生 模型,Intern Model,浦源书生 模型,浦源書生 模型,Intern モデル,,,,,,,,,
-浦源书生多模态模型，如：internvl3.5-241b-a28b,Intern multimodal model,internvl3.5-241b-a28b, internvl3.5-241b-a28b,浦源書生多模態模型，如：internvl3.5-241b-a28b,,,,,,,,,
-代理URL,Proxy URL,代理URL,代理URL,プロキシURL,,,,,,,,,
-可选。格式：http://proxy:port 或 socks5://proxy:port,Optional. Format: http://proxy:port or socks5://proxy:port,可选。格式：http://proxy:port 或 socks5://proxy:port,可選。格式：http://proxy:port 或 socks5://proxy:port,オプション。形式：http://proxy:port または socks5://proxy:port,,,,,,,,,
-最大并发数,Max Concurrent,最大并发数,最大並發數,最大同時実行数,,,,,,,,,
-个,items,个,個,個,,,,,,,,,
-批量处理时的最大并发请求数。,Maximum number of concurrent requests during batch processing.,批量处理时的最大并发请求数。,批量處理時的最大並發請求數。,バッチ処理時の最大同時リクエスト数。,,,,,,,,,
-文字识别（AI OCR）,Text Recognition (AI OCR),文字识别（AI OCR）,文字識別（AI OCR）,文字認識（AI OCR）,,,,,,,,,
-识别语言,Recognition Language,识别语言,識別語言,認識言語,,,,,,,,,
-自动检测,Auto Detect,自动检测,自動檢測,自動検出,,,,,,,,,
-中文,Chinese,中文,中文,中国語,,,,,,,,,
-英文,English,英文,英文,英語,,,,,,,,,
-日文,Japanese,日文,日文,日本語,,,,,,,,,
-韩文,Korean,韩文,韓文,韓国語,,,,,,,,,
-法文,French,法文,法文,フランス語,,,,,,,,,
-德文,German,德文,德文,ドイツ語,,,,,,,,,
-西班牙文,Spanish,西班牙文,西班牙文,スペイン語,,,,,,,,,
-俄文,Russian,俄文,俄文,ロシア語,,,,,,,,,
-阿拉伯文,Arabic,阿拉伯文,阿拉伯文,アラビア語,,,,,,,,,
-指定要识别的文字语言。自动检测适用于大多数情况。,Specify the language of text to recognize. Auto detection works for most cases.,指定要识别的文字语言。自动检测适用于大多数情况。,指定要識別的文字語言。自動檢測適用於大多數情況。,認識するテキストの言語を指定します。自動検出はほとんどの場合に適用されます。,,,,,,,,,
-输出格式,Output Format,输出格式,輸出格式,出力形式,,,,,,,,,
-仅文字,Text Only,仅文字,僅文字,テキストのみ,,,,,,,,,
-文字+坐标,Text + Coordinates,文字+坐标,文字+坐標,テキスト+座標,,,,,,,,,
-选择OCR结果的输出格式。坐标信息可用于定位文字位置。,Select the output format for OCR results. Coordinate information can be used to locate text positions.,选择OCR结果的输出格式。坐标信息可用于定位文字位置。,選擇OCR結果的輸出格式。坐標信息可用於定位文字位置。,OCR結果の出力形式を選択します。座標情報はテキストの位置を特定するために使用できます。,,,,,,,,,
-Markdown格式,Markdown Format,Markdown格式,Markdown格式,Markdown形式,,,,,,,,,
-选择OCR结果的输出格式。坐标信息可用于定位文字位置。Markdown格式将直接输出AI返回的Markdown内容。,"Select the output format for OCR results. Coordinate information can be used to locate text positions. Markdown format will directly output AI-returned Markdown content.",选择OCR结果的输出格式。坐标信息可用于定位文字位置。Markdown格式将直接输出AI返回的Markdown内容。,選擇OCR結果的輸出格式。坐標信息可用於定位文字位置。Markdown格式將直接輸出AI返回的Markdown內容。,"OCR結果の出力形式を選択します。座標情報はテキストの位置を特定するために使用できます。Markdown形式はAIが返したMarkdownコンテンツを直接出力します。",,,,,,,,,
-Markdown识别 Prompt,Markdown OCR Prompt,Markdown识别 Prompt,Markdown識別 Prompt,Markdown OCRプロンプト,,,,,,,,,
-Markdown识别模式的提示词模板，{language}会被替换为当前识别语言。留空则使用默认模板。,Prompt template for Markdown mode. {language} will be replaced with the current recognition language. Leave empty to use the default template.,Markdown识别模式的提示词模板，{language}会被替换为当前识别语言。留空则使用默认模板。,Markdown識別模式的提示詞模板，{language}會被替換為當前識別語言。留空則使用默認模板。,Markdownモードのプロンプトテンプレート。{language}は現在の認識言語に置換されます。空欄の場合はデフォルトテンプレートを使用します。,,,,,,,,,
-图像质量,Image Quality,图像质量,圖像質量,画像品質,,,,,,,,,
-自动,Auto,自动,自動,自動,,,,,,,,,
-高质量,High Quality,高质量,高質量,高品質,,,,,,,,,
-中等质量,Medium Quality,中等质量,中等質量,中品質,,,,,,,,,
-低质量,Low Quality,低质量,低質量,低品質,,,,,,,,,
-图像压缩质量。高质量可能提高识别精度但增加传输时间。,Image compression quality. High quality may improve recognition accuracy but increase transmission time.,图像压缩质量。高质量可能提高识别精度但增加传输时间。,圖像壓縮質量。高質量可能提高識別精度但增加傳輸時間。,画像圧縮品質。高品質は認識精度を向上させる可能性がありますが、転送時間が増加します。,,,,,,,,,
-最大图像尺寸,Max Image Size,最大图像尺寸,最大圖像尺寸,最大画像サイズ,,,,,,,,,
-（推荐）,(Recommended),（推荐）,（推薦）,（推奨）,,,,,,,,,
-图像的最大边长。过大的图像会被压缩以节省API调用成本。,Maximum side length of the image. Oversized images will be compressed to save API call costs.,图像的最大边长。过大的图像会被压缩以节省API调用成本。,圖像的最大邊長。過大的圖像會被壓縮以節省API調用成本。,画像の最大辺長。大きすぎる画像はAPI呼び出しコストを節約するために圧縮されます。,,,,,,,,,
-Kimi API密钥,Kimi API Key,Kimi API密钥,Kimi API金鑰,Kimi APIキー,,,,,,,,,
-请输入Kimi平台的API Key（从 https://platform.moonshot.cn 获取）,Please enter Kimi API key (from https://platform.moonshot.cn),请输入Kimi平台的API Key（从 https://platform.moonshot.cn 获取）,請輸入Kimi平台的API Key（從 https://platform.moonshot.cn 獲取）,KimiのAPIキーを入力してください（https://platform.moonshot.cn から取得）,,,,,,,,,
-Kimi 模型,Kimi Model,Kimi 模型,Kimi 模型,Kimi モデル,,,,,,,,,
-Kimi视觉模型名称，如：kimi-k2.6, kimi-k2.5, moonshot-v1-128k-vision-preview,Kimi vision model name, e.g., kimi-k2.6, kimi-k2.5, moonshot-v1-128k-vision-preview,Kimi视觉模型名称，如：kimi-k2.6, kimi-k2.5, moonshot-v1-128k-vision-preview,Kimi視覺模型名稱，如：kimi-k2.6, kimi-k2.5, moonshot-v1-128k-vision-preview,Kimiビジョンモデル名、例：kimi-k2.6, kimi-k2.5, moonshot-v1-128k-vision-preview,,,,,,,,,
-Kimi API地址,Kimi API URL,Kimi API地址,Kimi API位址,Kimi API URL,,,,,,,,,
-Kimi平台的API地址，默认：https://api.moonshot.cn/v1,Kimi API URL, default: https://api.moonshot.cn/v1,Kimi平台的API地址，默认：https://api.moonshot.cn/v1,Kimi平台的API位址，默認：https://api.moonshot.cn/v1,KimiのAPI URL、デフォルト：https://api.moonshot.cn/v1,,,,,,,,,
-NVIDIA NIM API密钥,NVIDIA NIM API Key,NVIDIA NIM API密钥,NVIDIA NIM API金鑰,NVIDIA NIM APIキー,,,,,,,,,
-请输入NVIDIA NIM的API Key（从 https://build.nvidia.com 获取）,Please enter NVIDIA NIM API key (from https://build.nvidia.com),请输入NVIDIA NIM的API Key（从 https://build.nvidia.com 获取）,請輸入NVIDIA NIM的API Key（從 https://build.nvidia.com 獲取）,NVIDIA NIMのAPIキーを入力してください（https://build.nvidia.com から取得）,,,,,,,,,
-NVIDIA NIM 模型,NVIDIA NIM Model,NVIDIA NIM 模型,NVIDIA NIM 模型,NVIDIA NIM モデル,,,,,,,,,
-NVIDIA NIM模型名称，如：moonshotai/kimi-k2.6,NVIDIA NIM model name, e.g., moonshotai/kimi-k2.6,NVIDIA NIM模型名称，如：moonshotai/kimi-k2.6,NVIDIA NIM模型名稱，如：moonshotai/kimi-k2.6,NVIDIA NIMモデル名、例：moonshotai/kimi-k2.6,,,,,,,,,
-NVIDIA NIM API地址,NVIDIA NIM API URL,NVIDIA NIM API地址,NVIDIA NIM API位址,NVIDIA NIM API URL,,,,,,,,,
-NVIDIA NIM的API地址，默认：https://integrate.api.nvidia.com/v1,NVIDIA NIM API URL, default: https://integrate.api.nvidia.com/v1,NVIDIA NIM的API地址，默认：https://integrate.api.nvidia.com/v1,NVIDIA NIM的API位址，默認：https://integrate.api.nvidia.com/v1,NVIDIA NIMのAPI URL、デフォルト：https://integrate.api.nvidia.com/v1,,,,,,,,,
-PaddleOCR Token,PaddleOCR Token,PaddleOCR Token,PaddleOCR Token,PaddleOCR Token,,,,,,,,,
-请输入AI Studio的Access Token（从 https://aistudio.baidu.com/account/accessToken 获取）,Please enter AI Studio Access Token (from https://aistudio.baidu.com/account/accessToken),请输入AI Studio的Access Token（从 https://aistudio.baidu.com/account/accessToken 获取）,請輸入AI Studio的Access Token（從 https://aistudio.baidu.com/account/accessToken 獲取）,AI StudioのAccess Tokenを入力してください（https://aistudio.baidu.com/account/accessToken から取得）,,,,,,,,,
-PaddleOCR 模型,PaddleOCR Model,PaddleOCR 模型,PaddleOCR 模型,PaddleOCR モデル,,,,,,,,,
-PaddleOCR模型名称，如：PP-OCRv6,PaddleOCR model name, e.g., PP-OCRv6,PaddleOCR模型名称，如：PP-OCRv6,PaddleOCR模型名稱，如：PP-OCRv6,PaddleOCRモデル名、例：PP-OCRv6,,,,,,,,,
-PaddleOCR API地址,PaddleOCR API URL,PaddleOCR API地址,PaddleOCR API位址,PaddleOCR API URL,,,,,,,,,
-PaddleOCR异步API基础地址，默认：https://paddleocr.aistudio-app.com,PaddleOCR async API base URL, default: https://paddleocr.aistudio-app.com,PaddleOCR异步API基础地址，默认：https://paddleocr.aistudio-app.com,PaddleOCR異步API基礎位址，默認：https://paddleocr.aistudio-app.com,PaddleOCR非同期APIベースURL、デフォルト：https://paddleocr.aistudio-app.com,,,,,,,,,
-PaddleOCR-VL-1.6 Token,PaddleOCR-VL-1.6 Token,PaddleOCR-VL-1.6 Token,PaddleOCR-VL-1.6 Token,PaddleOCR-VL-1.6 Token,,,,,,,,,
-PaddleOCR-VL-1.6 模型,PaddleOCR-VL-1.6 Model,PaddleOCR-VL-1.6 模型,PaddleOCR-VL-1.6 模型,PaddleOCR-VL-1.6 モデル,,,,,,,,,
-PaddleOCR-VL-1.6模型名称，如：PaddleOCR-VL-1.6,PaddleOCR-VL-1.6 model name, e.g., PaddleOCR-VL-1.6,PaddleOCR-VL-1.6模型名称，如：PaddleOCR-VL-1.6,PaddleOCR-VL-1.6模型名稱，如：PaddleOCR-VL-1.6,PaddleOCR-VL-1.6モデル名、例：PaddleOCR-VL-1.6,,,,,,,,,
-PaddleOCR-VL-1.6 API地址,PaddleOCR-VL-1.6 API URL,PaddleOCR-VL-1.6 API地址,PaddleOCR-VL-1.6 API位址,PaddleOCR-VL-1.6 API URL,,,,,,,,,
-PaddleOCR-VL-1.6异步API基础地址，默认：https://paddleocr.aistudio-app.com,PaddleOCR-VL-1.6 async API base URL, default: https://paddleocr.aistudio-app.com,PaddleOCR-VL-1.6异步API基础地址，默认：https://paddleocr.aistudio-app.com,PaddleOCR-VL-1.6異步API基礎位址，默認：https://paddleocr.aistudio-app.com,PaddleOCR-VL-1.6非同期APIベースURL、デフォルト：https://paddleocr.aistudio-app.com,,,,,,,,,
-PP-StructureV3 Token,PP-StructureV3 Token,PP-StructureV3 Token,PP-StructureV3 Token,PP-StructureV3 Token,,,,,,,,,
-PP-StructureV3 模型,PP-StructureV3 Model,PP-StructureV3 模型,PP-StructureV3 模型,PP-StructureV3 モデル,,,,,,,,,
-PP-StructureV3模型名称，如：PP-StructureV3,PP-StructureV3 model name, e.g., PP-StructureV3,PP-StructureV3模型名称，如：PP-StructureV3,PP-StructureV3模型名稱，如：PP-StructureV3,PP-StructureV3モデル名、例：PP-StructureV3,,,,,,,,,
-PP-StructureV3 API地址,PP-StructureV3 API URL,PP-StructureV3 API地址,PP-StructureV3 API位址,PP-StructureV3 API URL,,,,,,,,,
-PP-StructureV3异步API基础地址，默认：https://paddleocr.aistudio-app.com,PP-StructureV3 async API base URL, default: https://paddleocr.aistudio-app.com,PP-StructureV3异步API基础地址，默认：https://paddleocr.aistudio-app.com,PP-StructureV3異步API基礎位址，默認：https://paddleocr.aistudio-app.com,PP-StructureV3非同期APIベースURL、デフォルト：https://paddleocr.aistudio-app.com,,,,,,,,,
-并发识别数,Concurrent Recognition,并发识别数,並發識別數,同時認識数,,,,,,,,,
-并发向AI发送识别请求，提升总体速度。PaddleOCR异步模式下建议设为5-10。,Send OCR requests to AI concurrently to improve overall speed. Recommended 5-10 for PaddleOCR async mode.,并发向AI发送识别请求，提升总体速度。PaddleOCR异步模式下建议设为5-10。,並發向AI發送識別請求，提升總體速度。PaddleOCR異步模式下建議設為5-10。,AIにOCRリクエストを同時送信して全体の速度を向上。PaddleOCR非同期モードでは5-10を推奨。,,,,,,,,,
-Longcat AI API密钥,Longcat AI API Key,Longcat AI API密钥,Longcat AI API金鑰,Longcat AI APIキー,,,,,,,,,
-请输入Longcat AI平台的API Key（从 https://longcat.chat/platform/api_keys 获取）,Please enter Longcat AI API Key (from https://longcat.chat/platform/api_keys),请输入Longcat AI平台的API Key（从 https://longcat.chat/platform/api_keys 获取）,請輸入Longcat AI平台的API Key（從 https://longcat.chat/platform/api_keys 獲取）,Longcat AIのAPIキーを入力してください（https://longcat.chat/platform/api_keys から取得）,,,,,,,,,
-Longcat AI 模型,Longcat AI Model,Longcat AI 模型,Longcat AI 模型,Longcat AI モデル,,,,,,,,,
-Longcat AI模型名称，如：LongCat-Flash-Chat, LongCat-Flash-Thinking, LongCat-Flash-Lite,Longcat AI model name, e.g., LongCat-Flash-Chat, LongCat-Flash-Thinking, LongCat-Flash-Lite,Longcat AI模型名称，如：LongCat-Flash-Chat, LongCat-Flash-Thinking, LongCat-Flash-Lite,Longcat AI模型名稱，如：LongCat-Flash-Chat, LongCat-Flash-Thinking, LongCat-Flash-Lite,Longcat AIモデル名、例：LongCat-Flash-Chat, LongCat-Flash-Thinking, LongCat-Flash-Lite,,,,,,,,,
-Longcat AI API地址,Longcat AI API URL,Longcat AI API地址,Longcat AI API位址,Longcat AI API URL,,,,,,,,,
-Longcat AI的API地址，默认：https://api.longcat.chat/openai/v1,Longcat AI API URL, default: https://api.longcat.chat/openai/v1,Longcat AI的API地址，默认：https://api.longcat.chat/openai/v1,Longcat AI的API位址，默認：https://api.longcat.chat/openai/v1,Longcat AIのAPI URL、デフォルト：https://api.longcat.chat/openai/v1,,,,,,,,,
-llama.cpp API密钥,llama.cpp API Key,llama.cpp API密钥,llama.cpp API金鑰,llama.cpp APIキー,,,,,,,,,
-可留空。如启动llama.cpp服务时设置了 --api-key，请在此填写对应密钥。,"Leave empty. If you set --api-key when starting llama.cpp server, enter the key here.",可留空。如启动llama.cpp服务时设置了 --api-key，请在此填写对应密钥。,可留空。如啟動llama.cpp服務時設置了 --api-key，請在此填寫對應密鑰。,空欄可。llama.cppサーバー起動時に --api-key を設定した場合は、ここに入力してください。,,,,,,,,,
-llama.cpp 模型,llama.cpp Model,llama.cpp 模型,llama.cpp 模型,llama.cpp モデル,,,,,,,,,
-llama.cpp加载的模型名称，可通过 /v1/models 端点查询。,"Model name loaded by llama.cpp, queryable via /v1/models endpoint.",llama.cpp加载的模型名称，可通过 /v1/models 端点查询。,llama.cpp加載的模型名稱，可通過 /v1/models 端點查詢。,llama.cppで読み込まれたモデル名。/v1/models エンドポイントで確認可能。,,,,,,,,,
-llama.cpp API地址,llama.cpp API URL,llama.cpp API地址,llama.cpp API位址,llama.cpp API URL,,,,,,,,,
-llama.cpp本地服务的API地址，默认为 http://localhost:8080/v1,llama.cpp local service API URL, default: http://localhost:8080/v1,llama.cpp本地服务的API地址，默认为 http://localhost:8080/v1,llama.cpp本地服務的API位址，默認為 http://localhost:8080/v1,llama.cppローカルサービスのAPI URL、デフォルト：http://localhost:8080/v1,,,,,,,,,
-
+key,en,zh,zh-tw,ja
+AI OCR 设置,AI OCR Settings,AI OCR 设置,AI OCR 設置,AI OCR 設定
+纯文字识别 Prompt,Text-only OCR Prompt,纯文字识别 Prompt,純文字識別 Prompt,テキストのみOCRプロンプト
+纯文字识别模式的提示词模板，{language}会被替换为当前识别语言。留空则使用默认模板。,Prompt template for text-only mode. {language} will be replaced with the current recognition language. Leave empty to use the default template.,纯文字识别模式的提示词模板，{language}会被替换为当前识别语言。留空则使用默认模板。,純文字識別模式的提示詞模板，{language}會被替換為當前識別語言。留空則使用默認模板。,テキストのみモードのプロンプトテンプレート。{language}は現在の認識言語に置換されます。空欄の場合はデフォルトテンプレートを使用します。
+含坐标识别 Prompt,OCR Prompt with Coordinates,含坐标识别 Prompt,含坐標識別 Prompt,座標付きOCRプロンプト
+含坐标识别模式的提示词模板，{language}会被替换为当前识别语言。留空则使用默认模板。,Prompt template for coordinate mode. {language} will be replaced with the current recognition language. Leave empty to use the default template.,含坐标识别模式的提示词模板，{language}会被替换为当前识别语言。留空则使用默认模板。,含坐標識別模式的提示詞模板，{language}會被替換為當前識別語言。留空則使用默認模板。,座標付きモードのプロンプトテンプレート。{language}は現在の認識言語に置換されます。空欄の場合はデフォルトテンプレートを使用します。
+当前AI服务商,Current AI Provider,当前AI服务商,當前AI服務商,現在のAIプロバイダー
+选择当前要使用的AI服务商。所有服务商的配置都会保存，切换时无需重新输入。,Select the current AI service provider to use. All provider configurations are saved and switching doesn't require re-entering credentials.,选择当前要使用的AI服务商。所有服务商的配置都会保存，切换时无需重新输入。,選擇當前要使用的AI服務商。所有服務商的配置都會保存，切換時無需重新輸入。,現在使用するAIサービスプロバイダーを選択してください。すべてのプロバイダー設定が保存され、切り替え時に再入力は不要です。
+跟随全局设置,Follow Global Setting,跟随全局设置,跟隨全局設置,グローバル設定に従う
+选择当前AI服务商。默认跟随全局设置，也可在此直接切换（切换后全局设置同步更新）。,Select the current AI provider. Defaults to global setting; you can also switch here (global setting will be synced).,选择当前AI服务商。默认跟随全局设置，也可在此直接切换（切换后全局设置同步更新）。,選擇當前AI服務商。默認跟隨全局設置，也可在此直接切換（切換後全局設置同步更新）。,現在のAIプロバイダーを選択。デフォルトはグローバル設定に従います。ここで切り替えも可能（グローバル設定と同期）。
+请求超时,Request Timeout,请求超时,請求超時,リクエストタイムアウト
+秒,seconds,秒,秒,秒
+API请求的超时时间。,Timeout duration for API requests.,API请求的超时时间。,API請求的超時時間。,APIリクエストのタイムアウト時間。
+阿里云百炼 API密钥,Alibaba API Key,阿里云百炼 API密钥,阿里雲百煉 API密鑰,Alibaba APIキー
+请输入阿里云百炼的API密钥,Please enter Alibaba API key,请输入阿里云百炼的API密钥,請輸入阿里雲百煉的API密鑰,AlibabaのAPIキーを入力してください
+阿里云百炼 模型,Alibaba Model,阿里云百炼 模型,阿里雲百煉 模型,Alibaba モデル
+阿里云百炼模型名称，如：qwen3-vl-235b-a22b-instruct,Alibaba model name such as: qwen3-vl-235b-a22b-instruct,阿里云百炼模型名称，如：qwen3-vl-235b-a22b-instruct,阿里雲百煉模型名稱，如：qwen3-vl-235b-a22b-instruct,Alibabaモデル名、例：qwen3-vl-235b-a22b-instruct
+豆包 API密钥,Doubao API Key,豆包 API密钥,豆包 API密鑰,Doubao APIキー
+请输入豆包的API密钥,Please enter Doubao API key,请输入豆包的API密钥,請輸入豆包的API密鑰,DoubaoのAPIキーを入力してください
+豆包 模型,Doubao Model,豆包 模型,豆包 模型,Doubao モデル
+豆包模型名称，如：doubao-seed-1-6-250615,Doubao model name such as: doubao-seed-1-6-250615,豆包模型名称，如：doubao-seed-1-6-250615,豆包模型名稱，如：doubao-seed-1-6-250615,Doubaoモデル名、例：doubao-seed-1-6-250615
+Gemini API密钥,Gemini API Key,Gemini API密钥,Gemini API密鑰,Gemini APIキー
+请输入Google Gemini的API密钥,Please enter Google Gemini API key,请输入Google Gemini的API密钥,請輸入Google Gemini的API密鑰,Google GeminiのAPIキーを入力してください
+Gemini 模型,Gemini Model,Gemini 模型,Gemini 模型,Gemini モデル
+Gemini模型名称，如：gemini-2.5-flash, gemini-1.5-pro,Gemini model name such as: gemini-2.5-flash, gemini-1.5-pro,Gemini模型名称，如：gemini-2.5-flash
+OpenAI API密钥,OpenAI API Key,OpenAI API密钥,OpenAI API密鑰,OpenAI APIキー
+请输入OpenAI的API密钥,Please enter OpenAI API key,请输入OpenAI的API密钥,請輸入OpenAI的API密鑰,OpenAIのAPIキーを入力してください
+OpenAI 模型,OpenAI Model,OpenAI 模型,OpenAI 模型,OpenAI モデル
+OpenAI模型名称，如：gpt-5-mini, gpt-4o,OpenAI model name such as: gpt-5-mini, gpt-4o,OpenAI模型名称，如：gpt-5-mini
+自定义OpenAI兼容 (Custom),Custom OpenAI-Compatible (Custom),自定义OpenAI兼容 (Custom),自訂OpenAI兼容 (Custom),カスタムOpenAI互換 (Custom)
+自定义OpenAI兼容 API密钥,Custom OpenAI-Compatible API Key,自定义OpenAI兼容 API密钥,自訂OpenAI兼容 API密鑰,カスタムOpenAI互換APIキー
+请输入自定义OpenAI兼容平台的API密钥,Please enter your API key for the custom OpenAI-compatible platform,请输入自定义OpenAI兼容平台的API密钥,請輸入自訂OpenAI兼容平台的API密鑰,カスタムOpenAI互換プラットフォームのAPIキーを入力してください
+自定义OpenAI兼容 模型,Custom OpenAI-Compatible Model,自定义OpenAI兼容 模型,自訂OpenAI兼容 模型,カスタムOpenAI互換モデル
+OpenAI兼容模型名称，如：gpt-4o, qwen-vl-plus, deepseek-vl2 等,OpenAI-compatible model name such as: gpt-4o, qwen-vl-plus
+自定义OpenAI兼容 API地址,Custom OpenAI-Compatible API URL,自定义OpenAI兼容 API地址,自訂OpenAI兼容 API位址,カスタムOpenAI互換API URL
+OpenAI兼容API地址。默认：https://api.openai.com/v1 ；可填写任意兼容平台（如 vLLM、One API、new-api 中转、自建服务等）的地址，请求将发送到 {地址}/chat/completions,OpenAI-compatible API URL. Default: https://api.openai.com/v1. You can fill in any compatible platform (vLLM, One API, new-api relay, self-hosted service
+OpenRouter API密钥,OpenRouter API Key,OpenRouter API密钥,OpenRouter API密鑰,OpenRouter APIキー
+请输入OpenRouter的API密钥,Please enter OpenRouter API key,请输入OpenRouter的API密钥,請輸入OpenRouter的API密鑰,OpenRouterのAPIキーを入力してください
+OpenRouter 模型,OpenRouter Model,OpenRouter 模型,OpenRouter 模型,OpenRouter モデル
+OpenRouter模型名称，如：qwen/qwen2.5-vl-72b-instruct:free,qwen/qwen2.5-vl-72b-instruct:free,OpenRouter model name such as: qwen/qwen2.5-vl-72b-instruct:free,qwen/qwen2.5-vl-72b-instruct:free,OpenRouter模型名称，如：qwen/qwen2.5-vl-72b-instruct:free
+硅基流动 API密钥,SiliconFlow API Key,硅基流动 API密钥,硅基流動 API密鑰,SiliconFlow APIキー
+请输入硅基流动的API密钥,Please enter SiliconFlow API key,请输入硅基流动的API密钥,請輸入硅基流動的API密鑰,SiliconFlowのAPIキーを入力してください
+硅基流动 模型,SiliconFlow Model,硅基流动 模型,硅基流動 模型,SiliconFlow モデル
+硅基流动模型名称，如：Qwen/Qwen2.5-VL-72B-Instruct, Qwen/Qwen2.5-VL-72B-Instruct,SiliconFlow model name such as: Qwen/Qwen2.5-VL-72B-Instruct, Qwen/Qwen2.5-VL-72B-Instruct,硅基流动模型名称，如：Qwen/Qwen2.5-VL-72B-Instruct
+xAI API密钥,xAI API Key,xAI API密钥,xAI API密鑰,xAI APIキー
+请输入xAI的API密钥,Please enter xAI API key,请输入xAI的API密钥,請輸入xAI的API密鑰,xAIのAPIキーを入力してください
+xAI 模型,xAI Model,xAI 模型,xAI 模型,xAI モデル
+xAI模型名称，如：grok-4,xAI model name such as: grok-4,xAI模型名称，如：grok-4,xAI模型名稱，如：grok-4,xAIモデル名、例：grok-4
+智谱AI API密钥,ZhipuAI API Key,智谱AI API密钥,智譜AI API密鑰,ZhipuAI APIキー
+请输入智谱AI的API密钥,Please enter ZhipuAI API key,请输入智谱AI的API密钥,請輸入智譜AI的API密鑰,ZhipuAIのAPIキーを入力してください
+智谱AI 模型,ZhipuAI Model,智谱AI 模型,智譜AI 模型,ZhipuAI モデル
+智谱AI模型名称，如：glm-4.5v,ZhipuAI model name such as: glm-4.5v,智谱AI模型名称，如：glm-4.5v,智譜AI模型名稱，如：glm-4.5v,ZhipuAIモデル名、例：glm-4.5v
+GLM-OCR API密钥,GLM-OCR API Key,GLM-OCR API密钥,GLM-OCR API密鑰,GLM-OCR APIキー
+请输入GLM-OCR的API密钥,Please enter GLM-OCR API key,请输入GLM-OCR的API密钥,請輸入GLM-OCR的API密鑰,GLM-OCRのAPIキーを入力してください
+GLM-OCR 模型,GLM-OCR Model,GLM-OCR 模型,GLM-OCR 模型,GLM-OCR モデル
+GLM-OCR模型名称，如：glm-ocr,GLM-OCR model name such as: glm-ocr,GLM-OCR模型名称，如：glm-ocr,GLM-OCR模型名稱，如：glm-ocr,GLM-OCRモデル名、例：glm-ocr
+LM Studio API地址,LM Studio API URL,LM Studio API地址,LM Studio API位址,LM Studio API URL
+LM Studio服务地址，如：http://localhost:1234/v1 或 http://192.168.1.100:1234/v1,LM Studio service URL, e.g., http://localhost:1234/v1 or http://192.168.1.100:1234/v1,LM Studio服務地址，如：http://localhost:1234/v1 或 http://192.168.1.100:1234/v1
+LM Studio API密钥,LM Studio API Key,LM Studio API密钥,LM Studio API金鑰,LM Studio APIキー
+LM Studio本地API密钥（可选，本地服务通常不需要）,LM Studio local API key (optional, usually not needed for local services),LM Studio本地API金鑰（可選，本地服務通常不需要）,LM StudioローカルAPIキー（オプション、ローカルサービスでは通常不要）
+LM Studio 模型,LM Studio Model,LM Studio 模型,LM Studio 模型,LM Studio モデル
+LM Studio模型名称，如：llava, llava-1.5-7b-hf,LM Studio model name, e.g., llava
+Ollama API地址,Ollama API URL,Ollama API地址,Ollama API位址,Ollama API URL
+Ollama服务地址，如：http://localhost:11434/api 或 http://192.168.1.100:11434/api,Ollama service URL, e.g., http://localhost:11434/api or http://192.168.1.100:11434/api,Ollama服務位址，如：http://localhost:11434/api 或 http://192.168.1.100:11434/api
+Ollama API密钥,Ollama API Key,Ollama API密钥,Ollama API金鑰,Ollama APIキー
+Ollama本地API密钥（可选，本地服务通常不需要）,Ollama local API key (optional, usually not needed for local services),Ollama本地API金鑰（可選，本地服務通常不需要）,OllamaローカルAPIキー（オプション、ローカルサービスでは通常不要）
+Ollama 模型,Ollama Model,Ollama 模型,Ollama 模型,Ollama モデル
+Ollama模型名称，如：llava, llava:7b, bakllava,Ollama model name, e.g.
+Groq API密钥,Groq API Key,Groq API密钥,Groq API金鑰,Groq APIキー
+请输入Groq的API密钥,Please enter Groq API key,請輸入Groq的API金鑰,GroqのAPIキーを入力してください,
+Groq 模型,Groq Model,Groq 模型,Groq 模型,Groq モデル
+Groq模型名称，如：llama-3.3-70b-versatile, gemma2-9b-it,Groq model name, e.g., llama-3.3-70b-versatile
+腾讯混元 API密钥,Tencent Hunyuan API Key,腾讯混元 API密钥,騰訊混元 API金鑰,Tencent Hunyuan APIキー
+请输入腾讯混元的API密钥,Please enter Tencent Hunyuan API key,請輸入騰訊混元的API金鑰,Tencent HunyuanのAPIキーを入力してください,
+腾讯混元 模型,Tencent Hunyuan Model,腾讯混元 模型,騰訊混元 模型,Tencent Hunyuan モデル
+腾讯混元视觉模型名称，如：hy-vision-2.0-instruct, hunyuan-t1-vision-20250916, youtu-vita,"Tencent Hunyuan vision model name, e.g., hy-vision-2.0-instruct, hunyuan-t1-vision-20250916, youtu-vita",騰訊混元視覺模型名稱，如：hy-vision-2.0-instruct
+腾讯混元 (Hunyuan),Tencent Hunyuan,腾讯混元 (Hunyuan),騰訊混元 (Hunyuan),Tencent Hunyuan
+Mistral API密钥,Mistral API Key,Mistral API密钥,Mistral API金鑰,Mistral APIキー
+请输入Mistral的API密钥,Please enter Mistral API key,請輸入Mistral的API金鑰,MistralのAPIキーを入力してください,
+Mistral 模型,Mistral Model,Mistral 模型,Mistral 模型,Mistral モデル
+Mistral OCR模型名称，推荐：mistral-ocr-latest（即mistral-ocr-4-0）；也可使用视觉模型如pixtral-12b-2409,"Mistral OCR model name, recommended: mistral-ocr-latest (i.e. mistral-ocr-4-0); or vision models like pixtral-12b-2409",Mistral OCR模型名称，推荐：mistral-ocr-latest（即mistral-ocr-4-0）；也可使用视觉模型如pixtral-12b-2409,Mistral OCR模型名稱，推薦：mistral-ocr-latest（即mistral-ocr-4-0）；也可使用視覺模型如pixtral-12b-2409,Mistral OCRモデル名、推奨：mistral-ocr-latest（即mistral-ocr-4-0）；視覚モデル如pixtral-12b-2409も使用可能
+魔搭 API密钥,ModelScope API Key,魔搭 API密钥,魔搭 API金鑰,ModelScope APIキー
+请输入魔搭的访问令牌 (Access Token),Please enter ModelScope Access Token,請輸入魔搭的訪問令牌 (Access Token),ModelScopeのアクセストークンを入力してください,
+魔搭 模型,ModelScope Model,魔搭 模型,魔搭 模型,ModelScope モデル
+魔搭模型ID，如：Qwen/Qwen2.5-VL-72B-Instruct,qwen3-vl-235b-a22b-instruct,"ModelScope model ID, e.g., Qwen/Qwen2.5-VL-72B-Instruct,qwen3-vl-235b-a22b-instruct",魔搭模型ID，如：Qwen/Qwen2.5-VL-72B-Instruct,qwen3-vl-235b-a22b-instruct
+小米MiMo API密钥,Xiaomi MiMo API Key,小米MiMo API密钥,小米MiMo API金鑰,Xiaomi MiMo APIキー
+请输入小米MiMo平台的API密钥,Please enter Xiaomi MiMo API key,请输入小米MiMo平台的API密钥,請輸入小米MiMo平台的API金鑰,Xiaomi MiMoのAPIキーを入力してください
+小米MiMo 模型,Xiaomi MiMo Model,小米MiMo 模型,小米MiMo 模型,Xiaomi MiMo モデル
+MiMo视觉模型名称，如：mimo-v2.5,"MiMo vision model name, e.g., mimo-v2.5",MiMo視覺模型名稱，如：mimo-v2.5,MiMoビジョンモデル名、例：mimo-v2.5,
+浦源书生 API密钥,Intern API Key,浦源书生 API密钥,浦源書生 API金鑰,Intern APIキー
+请输入浦源书生的API密钥,Please enter Intern API key,請輸入浦源書生的API金鑰,InternのAPIキーを入力してください,
+浦源书生 模型,Intern Model,浦源书生 模型,浦源書生 模型,Intern モデル
+浦源书生多模态模型，如：internvl3.5-241b-a28b,Intern multimodal model,internvl3.5-241b-a28b, internvl3.5-241b-a28b,浦源書生多模態模型，如：internvl3.5-241b-a28b
+代理URL,Proxy URL,代理URL,代理URL,プロキシURL
+可选。格式：http://proxy:port 或 socks5://proxy:port,Optional. Format: http://proxy:port or socks5://proxy:port,可选。格式：http://proxy:port 或 socks5://proxy:port,可選。格式：http://proxy:port 或 socks5://proxy:port,オプション。形式：http://proxy:port または socks5://proxy:port
+最大并发数,Max Concurrent,最大并发数,最大並發數,最大同時実行数
+个,items,个,個,個
+批量处理时的最大并发请求数。,Maximum number of concurrent requests during batch processing.,批量处理时的最大并发请求数。,批量處理時的最大並發請求數。,バッチ処理時の最大同時リクエスト数。
+文字识别（AI OCR）,Text Recognition (AI OCR),文字识别（AI OCR）,文字識別（AI OCR）,文字認識（AI OCR）
+识别语言,Recognition Language,识别语言,識別語言,認識言語
+自动检测,Auto Detect,自动检测,自動檢測,自動検出
+中文,Chinese,中文,中文,中国語
+英文,English,英文,英文,英語
+日文,Japanese,日文,日文,日本語
+韩文,Korean,韩文,韓文,韓国語
+法文,French,法文,法文,フランス語
+德文,German,德文,德文,ドイツ語
+西班牙文,Spanish,西班牙文,西班牙文,スペイン語
+俄文,Russian,俄文,俄文,ロシア語
+阿拉伯文,Arabic,阿拉伯文,阿拉伯文,アラビア語
+指定要识别的文字语言。自动检测适用于大多数情况。,Specify the language of text to recognize. Auto detection works for most cases.,指定要识别的文字语言。自动检测适用于大多数情况。,指定要識別的文字語言。自動檢測適用於大多數情況。,認識するテキストの言語を指定します。自動検出はほとんどの場合に適用されます。
+输出格式,Output Format,输出格式,輸出格式,出力形式
+仅文字,Text Only,仅文字,僅文字,テキストのみ
+文字+坐标,Text + Coordinates,文字+坐标,文字+坐標,テキスト+座標
+选择OCR结果的输出格式。坐标信息可用于定位文字位置。,Select the output format for OCR results. Coordinate information can be used to locate text positions.,选择OCR结果的输出格式。坐标信息可用于定位文字位置。,選擇OCR結果的輸出格式。坐標信息可用於定位文字位置。,OCR結果の出力形式を選択します。座標情報はテキストの位置を特定するために使用できます。
+Markdown格式,Markdown Format,Markdown格式,Markdown格式,Markdown形式
+选择OCR结果的输出格式。坐标信息可用于定位文字位置。Markdown格式将直接输出AI返回的Markdown内容。,Select the output format for OCR results. Coordinate information can be used to locate text positions. Markdown format will directly output AI-returned Markdown content.,选择OCR结果的输出格式。坐标信息可用于定位文字位置。Markdown格式将直接输出AI返回的Markdown内容。,選擇OCR結果的輸出格式。坐標信息可用於定位文字位置。Markdown格式將直接輸出AI返回的Markdown內容。,OCR結果の出力形式を選択します。座標情報はテキストの位置を特定するために使用できます。Markdown形式はAIが返したMarkdownコンテンツを直接出力します。
+Markdown识别 Prompt,Markdown OCR Prompt,Markdown识别 Prompt,Markdown識別 Prompt,Markdown OCRプロンプト
+Markdown识别模式的提示词模板，{language}会被替换为当前识别语言。留空则使用默认模板。,Prompt template for Markdown mode. {language} will be replaced with the current recognition language. Leave empty to use the default template.,Markdown识别模式的提示词模板，{language}会被替换为当前识别语言。留空则使用默认模板。,Markdown識別模式的提示詞模板，{language}會被替換為當前識別語言。留空則使用默認模板。,Markdownモードのプロンプトテンプレート。{language}は現在の認識言語に置換されます。空欄の場合はデフォルトテンプレートを使用します。
+图像质量,Image Quality,图像质量,圖像質量,画像品質
+自动,Auto,自动,自動,自動
+高质量,High Quality,高质量,高質量,高品質
+中等质量,Medium Quality,中等质量,中等質量,中品質
+低质量,Low Quality,低质量,低質量,低品質
+图像压缩质量。高质量可能提高识别精度但增加传输时间。,Image compression quality. High quality may improve recognition accuracy but increase transmission time.,图像压缩质量。高质量可能提高识别精度但增加传输时间。,圖像壓縮質量。高質量可能提高識別精度但增加傳輸時間。,画像圧縮品質。高品質は認識精度を向上させる可能性がありますが、転送時間が増加します。
+最大图像尺寸,Max Image Size,最大图像尺寸,最大圖像尺寸,最大画像サイズ
+（推荐）,(Recommended),（推荐）,（推薦）,（推奨）
+图像的最大边长。过大的图像会被压缩以节省API调用成本。,Maximum side length of the image. Oversized images will be compressed to save API call costs.,图像的最大边长。过大的图像会被压缩以节省API调用成本。,圖像的最大邊長。過大的圖像會被壓縮以節省API調用成本。,画像の最大辺長。大きすぎる画像はAPI呼び出しコストを節約するために圧縮されます。
+Kimi API密钥,Kimi API Key,Kimi API密钥,Kimi API金鑰,Kimi APIキー
+请输入Kimi平台的API Key（从 https://platform.moonshot.cn 获取）,Please enter Kimi API key (from https://platform.moonshot.cn),请输入Kimi平台的API Key（从 https://platform.moonshot.cn 获取）,請輸入Kimi平台的API Key（從 https://platform.moonshot.cn 獲取）,KimiのAPIキーを入力してください（https://platform.moonshot.cn から取得）
+Kimi 模型,Kimi Model,Kimi 模型,Kimi 模型,Kimi モデル
+Kimi视觉模型名称，如：kimi-k2.6, kimi-k2.5, moonshot-v1-128k-vision-preview,Kimi vision model name, e.g.
+Kimi API地址,Kimi API URL,Kimi API地址,Kimi API位址,Kimi API URL
+Kimi平台的API地址，默认：https://api.moonshot.cn/v1,Kimi API URL, default: https://api.moonshot.cn/v1,Kimi平台的API地址，默认：https://api.moonshot.cn/v1,Kimi平台的API位址，默認：https://api.moonshot.cn/v1
+NVIDIA NIM API密钥,NVIDIA NIM API Key,NVIDIA NIM API密钥,NVIDIA NIM API金鑰,NVIDIA NIM APIキー
+请输入NVIDIA NIM的API Key（从 https://build.nvidia.com 获取）,Please enter NVIDIA NIM API key (from https://build.nvidia.com),请输入NVIDIA NIM的API Key（从 https://build.nvidia.com 获取）,請輸入NVIDIA NIM的API Key（從 https://build.nvidia.com 獲取）,NVIDIA NIMのAPIキーを入力してください（https://build.nvidia.com から取得）
+NVIDIA NIM 模型,NVIDIA NIM Model,NVIDIA NIM 模型,NVIDIA NIM 模型,NVIDIA NIM モデル
+NVIDIA NIM模型名称，如：moonshotai/kimi-k2.6,NVIDIA NIM model name, e.g., moonshotai/kimi-k2.6,NVIDIA NIM模型名称，如：moonshotai/kimi-k2.6
+NVIDIA NIM API地址,NVIDIA NIM API URL,NVIDIA NIM API地址,NVIDIA NIM API位址,NVIDIA NIM API URL
+NVIDIA NIM的API地址，默认：https://integrate.api.nvidia.com/v1,NVIDIA NIM API URL, default: https://integrate.api.nvidia.com/v1,NVIDIA NIM的API地址，默认：https://integrate.api.nvidia.com/v1,NVIDIA NIM的API位址，默認：https://integrate.api.nvidia.com/v1
+PaddleOCR Token,PaddleOCR Token,PaddleOCR Token,PaddleOCR Token,PaddleOCR Token
+请输入AI Studio的Access Token（从 https://aistudio.baidu.com/account/accessToken 获取）,Please enter AI Studio Access Token (from https://aistudio.baidu.com/account/accessToken),请输入AI Studio的Access Token（从 https://aistudio.baidu.com/account/accessToken 获取）,請輸入AI Studio的Access Token（從 https://aistudio.baidu.com/account/accessToken 獲取）,AI StudioのAccess Tokenを入力してください（https://aistudio.baidu.com/account/accessToken から取得）
+PaddleOCR 模型,PaddleOCR Model,PaddleOCR 模型,PaddleOCR 模型,PaddleOCR モデル
+PaddleOCR模型名称，如：PP-OCRv6,PaddleOCR model name, e.g., PP-OCRv6,PaddleOCR模型名称，如：PP-OCRv6
+PaddleOCR API地址,PaddleOCR API URL,PaddleOCR API地址,PaddleOCR API位址,PaddleOCR API URL
+PaddleOCR异步API基础地址，默认：https://paddleocr.aistudio-app.com,PaddleOCR async API base URL, default: https://paddleocr.aistudio-app.com,PaddleOCR异步API基础地址，默认：https://paddleocr.aistudio-app.com,PaddleOCR異步API基礎位址，默認：https://paddleocr.aistudio-app.com
+PaddleOCR-VL-1.6 Token,PaddleOCR-VL-1.6 Token,PaddleOCR-VL-1.6 Token,PaddleOCR-VL-1.6 Token,PaddleOCR-VL-1.6 Token
+PaddleOCR-VL-1.6 模型,PaddleOCR-VL-1.6 Model,PaddleOCR-VL-1.6 模型,PaddleOCR-VL-1.6 模型,PaddleOCR-VL-1.6 モデル
+PaddleOCR-VL-1.6模型名称，如：PaddleOCR-VL-1.6,PaddleOCR-VL-1.6 model name, e.g., PaddleOCR-VL-1.6,PaddleOCR-VL-1.6模型名称，如：PaddleOCR-VL-1.6
+PaddleOCR-VL-1.6 API地址,PaddleOCR-VL-1.6 API URL,PaddleOCR-VL-1.6 API地址,PaddleOCR-VL-1.6 API位址,PaddleOCR-VL-1.6 API URL
+PaddleOCR-VL-1.6异步API基础地址，默认：https://paddleocr.aistudio-app.com,PaddleOCR-VL-1.6 async API base URL, default: https://paddleocr.aistudio-app.com,PaddleOCR-VL-1.6异步API基础地址，默认：https://paddleocr.aistudio-app.com,PaddleOCR-VL-1.6異步API基礎位址，默認：https://paddleocr.aistudio-app.com
+PP-StructureV3 Token,PP-StructureV3 Token,PP-StructureV3 Token,PP-StructureV3 Token,PP-StructureV3 Token
+PP-StructureV3 模型,PP-StructureV3 Model,PP-StructureV3 模型,PP-StructureV3 模型,PP-StructureV3 モデル
+PP-StructureV3模型名称，如：PP-StructureV3,PP-StructureV3 model name, e.g., PP-StructureV3,PP-StructureV3模型名称，如：PP-StructureV3
+PP-StructureV3 API地址,PP-StructureV3 API URL,PP-StructureV3 API地址,PP-StructureV3 API位址,PP-StructureV3 API URL
+PP-StructureV3异步API基础地址，默认：https://paddleocr.aistudio-app.com,PP-StructureV3 async API base URL, default: https://paddleocr.aistudio-app.com,PP-StructureV3异步API基础地址，默认：https://paddleocr.aistudio-app.com,PP-StructureV3異步API基礎位址，默認：https://paddleocr.aistudio-app.com
+并发识别数,Concurrent Recognition,并发识别数,並發識別數,同時認識数
+并发向AI发送识别请求，提升总体速度。PaddleOCR异步模式下建议设为5-10。,Send OCR requests to AI concurrently to improve overall speed. Recommended 5-10 for PaddleOCR async mode.,并发向AI发送识别请求，提升总体速度。PaddleOCR异步模式下建议设为5-10。,並發向AI發送識別請求，提升總體速度。PaddleOCR異步模式下建議設為5-10。,AIにOCRリクエストを同時送信して全体の速度を向上。PaddleOCR非同期モードでは5-10を推奨。
+Longcat AI API密钥,Longcat AI API Key,Longcat AI API密钥,Longcat AI API金鑰,Longcat AI APIキー
+请输入Longcat AI平台的API Key（从 https://longcat.chat/platform/api_keys 获取）,Please enter Longcat AI API Key (from https://longcat.chat/platform/api_keys),请输入Longcat AI平台的API Key（从 https://longcat.chat/platform/api_keys 获取）,請輸入Longcat AI平台的API Key（從 https://longcat.chat/platform/api_keys 獲取）,Longcat AIのAPIキーを入力してください（https://longcat.chat/platform/api_keys から取得）
+Longcat AI 模型,Longcat AI Model,Longcat AI 模型,Longcat AI 模型,Longcat AI モデル
+Longcat AI模型名称，如：LongCat-Flash-Chat, LongCat-Flash-Thinking, LongCat-Flash-Lite,Longcat AI model name, e.g.
+Longcat AI API地址,Longcat AI API URL,Longcat AI API地址,Longcat AI API位址,Longcat AI API URL
+Longcat AI的API地址，默认：https://api.longcat.chat/openai/v1,Longcat AI API URL, default: https://api.longcat.chat/openai/v1,Longcat AI的API地址，默认：https://api.longcat.chat/openai/v1,Longcat AI的API位址，默認：https://api.longcat.chat/openai/v1
+llama.cpp API密钥,llama.cpp API Key,llama.cpp API密钥,llama.cpp API金鑰,llama.cpp APIキー
+可留空。如启动llama.cpp服务时设置了 --api-key，请在此填写对应密钥。,"Leave empty. If you set --api-key when starting llama.cpp server, enter the key here.",可留空。如启动llama.cpp服务时设置了 --api-key，请在此填写对应密钥。,可留空。如啟動llama.cpp服務時設置了 --api-key，請在此填寫對應密鑰。,空欄可。llama.cppサーバー起動時に --api-key を設定した場合は、ここに入力してください。
+llama.cpp 模型,llama.cpp Model,llama.cpp 模型,llama.cpp 模型,llama.cpp モデル
+llama.cpp加载的模型名称，可通过 /v1/models 端点查询。,"Model name loaded by llama.cpp, queryable via /v1/models endpoint.",llama.cpp加载的模型名称，可通过 /v1/models 端点查询。,llama.cpp加載的模型名稱，可通過 /v1/models 端點查詢。,llama.cppで読み込まれたモデル名。/v1/models エンドポイントで確認可能。
+llama.cpp API地址,llama.cpp API URL,llama.cpp API地址,llama.cpp API位址,llama.cpp API URL
+llama.cpp本地服务的API地址，默认为 http://localhost:8080/v1,llama.cpp local service API URL, default: http://localhost:8080/v1,llama.cpp本地服务的API地址，默认为 http://localhost:8080/v1,llama.cpp本地服務的API位址，默認為 http://localhost:8080/v1
+Agnes API密钥,Agnes API Key,Agnes API密钥,Agnes API金鑰,Agnes APIキー
+请输入Agnes平台的API Key,Please enter Agnes API key,请输入Agnes平台的API Key,請輸入Agnes平台的API Key,AgnesのAPIキーを入力してください
+Agnes 模型,Agnes Model,Agnes 模型,Agnes 模型,Agnes モデル
+Agnes模型名称，如：agnes-2.0-flash,Agnes model name such as: agnes-2.0-flash,Agnes模型名称，如：agnes-2.0-flash,Agnes模型名稱，如：agnes-2.0-flash,Agnesモデル名、例：agnes-2.0-flash
+Agnes API地址,Agnes API URL,Agnes API地址,Agnes API位址,Agnes API URL
+Agnes的API地址，默认：https://apihub.agnes-ai.com/v1,Agnes API URL, default: https://apihub.agnes-ai.com/v1,Agnes的API地址，默认：https://apihub.agnes-ai.com/v1,Agnes的API位址，默認：https://apihub.agnes-ai.com/v1
+讯飞星辰 API密钥,iFlytek Xingchen API Key,讯飞星辰 API密钥,訊飛星辰 API金鑰,訊飛星辰 APIキー
+请输入讯飞星辰MaaS平台的APIKey（从服务管控页面获取）,Please enter iFlytek Xingchen MaaS API Key (obtained from the service management page),请输入讯飞星辰MaaS平台的APIKey（从服务管控页面获取）,請輸入訊飛星辰MaaS平台的APIKey（從服務管控頁面獲取）,訊飛星辰MaaSプラットフォームのAPIKeyを入力してください（サービス管理ページから取得）
+讯飞星辰 模型,iFlytek Xingchen Model,讯飞星辰 模型,訊飛星辰 模型,訊飛星辰 モデル
+讯飞星辰模型ID（从服务管控页面获取）。注意讯飞平台模型名与其他平台不同：xoppaddleocrv16（PaddleOCR-VL-1.6）、xophunyuanocr（HunyuanOCR）；DeepSeek-OCR暂不支持API调用,iFlytek Xingchen model ID (obtained from the service management page). Note: iFlytek platform model names differ from other platforms: xoppaddleocrv16 (PaddleOCR-VL-1.6), xophunyuanocr (HunyuanOCR); DeepSeek-OCR does not support API calls yet,讯飞星辰模型ID（从服务管控页面获取）。注意讯飞平台模型名与其他平台不同：xoppaddleocrv16（PaddleOCR-VL-1.6）、xophunyuanocr（HunyuanOCR）；DeepSeek-OCR暂不支持API调用,訊飛星辰模型ID（從服務管控頁面獲取）。注意訊飛平台模型名與其他平台不同：xoppaddleocrv16（PaddleOCR-VL-1.6）、xophunyuanocr（HunyuanOCR）；DeepSeek-OCR暫不支援API呼叫
+讯飞星辰 API地址,iFlytek Xingchen API URL,讯飞星辰 API地址,訊飛星辰 API位址,訊飛星辰 API URL
+讯飞星辰MaaS API地址，默认：https://maas-api.cn-huabei-1.xf-yun.com/v2（2026年1月10日后发布服务的用户）；存量用户可使用 http://maas-api.cn-huabei-1.xf-yun.com/v1,iFlytek Xingchen MaaS API URL, default: https://maas-api.cn-huabei-1.xf-yun.com/v2 (for users with services published after 2026-01-10); existing users can use http://maas-api.cn-huabei-1.xf-yun.com/v1,讯飞星辰MaaS API地址，默认：https://maas-api.cn-huabei-1.xf-yun.com/v2（2026年1月10日后发布服务的用户）；存量用户可使用 http://maas-api.cn-huabei-1.xf-yun.com/v1,訊飛星辰MaaS API位址，默認：https://maas-api.cn-huabei-1.xf-yun.com/v2（2026年1月10日後發佈服務的用戶）；存量用戶可使用 http://maas-api.cn-huabei-1.xf-yun.com/v1
+每分钟最大请求数,Requests Per Minute,每分钟最大请求数,每分鐘最大請求數,毎分最大リクエスト数
+次/分钟,per minute,次/分钟,次/分鐘,回/分
+API请求速率限制（令牌桶算法，主动避免429限流）。0表示不限制。建议设为服务商限额的80%左右。密钥池：在任意服务商的API密钥框中填写多个密钥（用逗号、分号或换行分隔），插件将自动轮询使用，分摊请求压力。,"API request rate limit (token bucket algorithm, proactively avoids 429 throttling). 0 means unlimited. Recommended to set around 80% of the provider's limit. Key pool: fill multiple API keys (separated by commas, semicolons, or newlines) in any provider's API key field; the plugin will automatically rotate through them to spread request load.",API请求速率限制（令牌桶算法，主动避免429限流）。0表示不限制。建议设为服务商限额的80%左右。密钥池：在任意服务商的API密钥框中填写多个密钥（用逗号、分号或换行分隔），插件将自动轮询使用，分摊请求压力。,API請求速率限制（令牌桶算法，主動避免429限流）。0表示不限制。建議設為服務商限額的80%左右。密鑰池：在任意服務商的API密鑰框中填寫多個密鑰（用逗號、分號或換行分隔），插件將自動輪詢使用，分攤請求壓力。,APIリクエストレート制限（トークンバケットアルゴリズム、429スロットリングを積極的に回避）。0は無制限。プロバイダーの制限の80%程度に設定することを推奨。キープール：任意のプロバイダーのAPIキー欄に複数のキー（カンマ、セミコロン、改行で区切り）を入力すると、プラグインが自動的にローテーションしてリクエスト負荷を分散します。
+面壁智能 (ModelBest),ModelBest,面壁智能 (ModelBest),面壁智能 (ModelBest),ModelBest
+面壁智能 API密钥,ModelBest API Key,面壁智能 API密钥,面壁智能 API金鑰,ModelBest APIキー
+请输入面壁智能（ModelBest）的 MAP API Key（登录 https://platform.modelbest.ai → 控制台 → API Keys 获取）,Enter your ModelBest MAP API Key (log in to https://platform.modelbest.ai → Console → API Keys),请输入面壁智能（ModelBest）的 MAP API Key（登录 https://platform.modelbest.ai → 控制台 → API Keys 获取）,請輸入面壁智能（ModelBest）的 MAP API Key（登錄 https://platform.modelbest.ai → 控制台 → API Keys 獲取）,ModelBestのMAP APIキーを入力してください（https://platform.modelbest.ai → コンソール → API Keys から取得）
+面壁智能 模型,ModelBest Model,面壁智能 模型,面壁智能 模型,ModelBest モデル
+"面壁智能文档解析模型，默认 MiniCPM-OCR-1.0。可从下拉菜单选择（可通过""获取模型列表""按钮在线更新）；选择""自定义（手动输入）""后可在高级设置中填写任意模型名。","ModelBest document-parse model, default MiniCPM-OCR-1.0. Pick from the dropdown (refresh it online via the ""Fetch Model Lists"" button); choose ""Custom"" and enter any model name in advanced settings.","面壁智能文档解析模型，默认 MiniCPM-OCR-1.0。可从下拉菜单选择（可通过""获取模型列表""按钮在线更新）；选择""自定义（手动输入）""后可在高级设置中填写任意模型名。","面壁智能文檔解析模型，默認 MiniCPM-OCR-1.0。可從下拉菜單選擇（可通過""獲取模型列表""按鈕在線更新）；選擇""自定義（手動輸入）""後可在高級設置中填寫任意模型名。",ModelBestのドキュメント解析モデル（デフォルト：MiniCPM-OCR-1.0）。ドロップダウンから選択できます（「モデルリストを取得」ボタンでオンライン更新可能）。「カスタム（手動入力）」を選択した場合は詳細設定にモデル名を入力してください。
+面壁智能 API地址,ModelBest API URL,面壁智能 API地址,面壁智能 API位址,ModelBest API URL
+面壁智能开放平台API基础地址，默认：https://api.modelbest.ai （文档解析请求发送到 {地址}/v1/document-parse）,"ModelBest open platform API base URL, default: https://api.modelbest.ai (document-parse requests are sent to {URL}/v1/document-parse)",面壁智能开放平台API基础地址，默认：https://api.modelbest.ai （文档解析请求发送到 {地址}/v1/document-parse）,面壁智能開放平台API基礎位址，默認：https://api.modelbest.ai （文檔解析請求發送到 {位址}/v1/document-parse）,ModelBestオープンプラットフォームAPIのベースURL、デフォルト：https://api.modelbest.ai （ドキュメント解析リクエストは {URL}/v1/document-parse に送信されます）
+文档自适应旋转,Adaptive document rotation,文档自适应旋转,文檔自適應旋轉,ドキュメント自動回転
+【仅面壁智能】开启后自动旋转倾斜/倒置的文档图片再识别。注意：旋转后返回的坐标以矫正后页面为基准，如需精确坐标建议关闭。,[ModelBest only] Automatically rotates tilted/upside-down document images before recognition. Note: coordinates of rotated results refer to the corrected page; disable this if you need exact coordinates.,【仅面壁智能】开启后自动旋转倾斜/倒置的文档图片再识别。注意：旋转后返回的坐标以矫正后页面为基准，如需精确坐标建议关闭。,【僅面壁智能】開啟後自動旋轉傾斜/倒置的文檔圖片再識別。注意：旋轉後返回的坐標以矯正後頁面為基準，如需精確坐標建議關閉。,【ModelBestのみ】傾いた/逆さまのドキュメント画像を自動回転してから認識します。注意：回転後の座標は補正後のページ基準のため、正確な座標が必要な場合はオフにしてください。
+印章内容识别,Seal recognition,印章内容识别,印章內容識別,印章内容の認識
+【仅面壁智能】识别文档中的印章并输出其文字内容。关闭时印章区域保留布局但内容为空。,"[ModelBest only] Recognize seals in documents and output their text. When disabled, seal areas keep their layout but with empty content.",【仅面壁智能】识别文档中的印章并输出其文字内容。关闭时印章区域保留布局但内容为空。,【僅面壁智能】識別文檔中的印章並輸出其文字內容。關閉時印章區域保留佈局但內容為空。,【ModelBestのみ】ドキュメント内の印章を認識して文字内容を出力します。オフにすると印章領域はレイアウトが保持されますが内容は空になります。
+获取模型列表,Fetch Model Lists,获取模型列表,獲取模型列表,モデルリストを取得
+🔄 拉取当前服务商,🔄 Fetch current provider,🔄 拉取当前服务商,🔄 拉取當前服務商,🔄 現在のプロバイダーを取得
+🔄 拉取全部已配置平台,🔄 Fetch all configured providers,🔄 拉取全部已配置平台,🔄 拉取全部已配置平台,🔄 設定済みプロバイダーをすべて取得
+通过各平台API在线获取模型列表并更新上方下拉菜单。未配置API密钥的平台自动跳过；本地服务（Ollama等）需处于运行状态。结果缓存于插件目录 model_lists_cache.json，重启 Umi-OCR 后同样生效。,Fetch model lists online via each platform's API and update the dropdowns above. Providers without an API key are skipped automatically; local services (Ollama etc.) must be running. Results are cached in the plugin folder as model_lists_cache.json and also apply after restarting Umi-OCR.,通过各平台API在线获取模型列表并更新上方下拉菜单。未配置API密钥的平台自动跳过；本地服务（Ollama等）需处于运行状态。结果缓存于插件目录 model_lists_cache.json，重启 Umi-OCR 后同样生效。,通過各平台API在線獲取模型列表並更新上方下拉菜單。未配置API金鑰的平台自動跳過；本地服務（Ollama等）需處於運行狀態。結果緩存於插件目錄 model_lists_cache.json，重啟 Umi-OCR 後同樣生效。,各プラットフォームのAPIを通じてモデルリストをオンライン取得し、上のドロップダウンを更新します。APIキー未設定のプロバイダーは自動スキップ。ローカルサービス（Ollama等）は起動中である必要があります。結果はプラグインフォルダの model_lists_cache.json にキャッシュされ、Umi-OCR 再起動後も有効です。
+{0} 自定义模型,{0} Custom Model,{0} 自定义模型,{0} 自定義模型,{0} カスタムモデル
+"当""{0} 模型""选择""自定义（手动输入）""时生效。直接填写任意模型名（需支持图像输入），与旧版手填行为一致。","Takes effect when ""{0} Model"" is set to ""Custom"". Enter any model name (must support image input); same as the legacy manual input behavior.","当""{0} 模型""选择""自定义（手动输入）""时生效。直接填写任意模型名（需支持图像输入），与旧版手填行为一致。","當""{0} 模型""選擇""自定義（手動輸入）""時生效。直接填寫任意模型名（需支持圖像輸入），與舊版手填行為一致。",「{0} モデル」で「カスタム（手動入力）」を選択した場合に有効。任意のモデル名（画像入力対応）を直接入力できます。旧版の手動入力と同じ動作です。
+"【自定义模型】如需手填：先在上方下拉菜单选择""自定义（手动输入）""，然后开启页面右上角的「高级」开关，在下方带 * 号的""{0} 自定义模型""框中输入模型名（需支持图像输入；留空则回退默认模型）。","[Custom model] To enter a model manually: pick ""Custom"" in the dropdown above, then turn ON the ""Advanced"" toggle at the top-right of this page and type the model name (must support image input) in the ""* {0} Custom Model"" field below (empty falls back to the default model).","【自定义模型】如需手填：先在上方下拉菜单选择""自定义（手动输入）""，然后开启页面右上角的「高级」开关，在下方带 * 号的""{0} 自定义模型""框中输入模型名（需支持图像输入；留空则回退默认模型）。","【自定義模型】如需手填：先在上方下拉菜單選擇""自定義（手動輸入）""，然後開啟頁面右上角的「高級」開關，在下方帶 * 號的""{0} 自定義模型""框中輸入模型名（需支持圖像輸入；留空則回退默認模型）。",【カスタムモデル】手動入力する場合：上のドロップダウンで「カスタム（手動入力）」を選択し、ページ右上の「詳細」スイッチをオンにして、下の「* {0} カスタムモデル」欄にモデル名（画像入力対応）を入力してください（空欄の場合はデフォルトモデルにフォールバック）。,,,,,,,,,
+浦源书生 API地址,Intern API URL,浦源书生 API地址,浦源書生 API位址,Intern API URL,,,,,,,,,
+书生平台API地址，默认：https://discovery-api.intern-ai.org.cn/v1（2026年10月起启用的新域名；旧地址 chat.intern-ai.org.cn/api/v1 已停用）,"Intern platform API URL, default: https://discovery-api.intern-ai.org.cn/v1 (new domain since Oct 2026; the old chat.intern-ai.org.cn/api/v1 is deprecated)",书生平台API地址，默认：https://discovery-api.intern-ai.org.cn/v1（2026年10月起启用的新域名；旧地址 chat.intern-ai.org.cn/api/v1 已停用）,書生平台API位址，默認：https://discovery-api.intern-ai.org.cn/v1（2026年10月起啟用的新域名；舊位址 chat.intern-ai.org.cn/api/v1 已停用）,書生プラットフォームのAPI URL、デフォルト：https://discovery-api.intern-ai.org.cn/v1（2026年10月からの新ドメイン。旧 chat.intern-ai.org.cn/api/v1 は廃止）,,,,,,,,,
+"请输入浦源书生的API密钥。注意：生成模型限速 50 次/分钟、决策模型 200 次/分钟（所有 API Key 共享额度），建议在高级设置中将""每分钟最大请求数""设为 40 左右","Enter your Intern API key. Note: rate limits are 50 RPM for generation models and 200 RPM for decision models (shared across ALL API keys); it is recommended to set ""Requests Per Minute"" around 40 in advanced settings","请输入浦源书生的API密钥。注意：生成模型限速 50 次/分钟、决策模型 200 次/分钟（所有 API Key 共享额度），建议在高级设置中将""每分钟最大请求数""设为 40 左右","請輸入浦源書生的API金鑰。注意：生成模型限速 50 次/分鐘、決策模型 200 次/分鐘（所有 API 金鑰共享額度），建議在高級設置中將""每分鐘最大請求數""設為 40 左右",InternのAPIキーを入力してください。注意：生成モデルは毎分50回、意思決定モデルは毎分200回のレート制限（全APIキーで共有）のため、詳細設定の「毎分最大リクエスト数」を約40に設定することを推奨,,,,,,,,,
+浦源书生多模态模型，如：intern-latest、intern-s2-preview、intern-s1-pro、internvl3.5-241b-a28b,"Intern multimodal models, e.g.: intern-latest, intern-s2-preview, intern-s1-pro, internvl3.5-241b-a28b",浦源书生多模态模型，如：intern-latest、intern-s2-preview、intern-s1-pro、internvl3.5-241b-a28b,浦源書生多模態模型，如：intern-latest、intern-s2-preview、intern-s1-pro、internvl3.5-241b-a28b,Internのマルチモーダルモデル、例：intern-latest、intern-s2-preview、intern-s1-pro、internvl3.5-241b-a28b,,,,,,,,,

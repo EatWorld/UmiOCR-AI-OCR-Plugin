@@ -65,17 +65,84 @@ def strip_thinking_content(content):
 
     return content.strip()
 
+# 令牌桶速率限制器（线程安全）
+class TokenBucket:
+    """令牌桶限速器：按固定速率补充令牌，桶容量有上限。
+
+    用于控制"单位时间内"的 API 请求总数，主动避免触发服务商 429 限流。
+    支持短时突发（桶内积攒的令牌），同时严格保证长期平均速率不超过设定值。
+    """
+
+    def __init__(self, rate_per_minute, burst=None):
+        """
+        :param rate_per_minute: 每分钟令牌补充速率（即每分钟最大请求数）
+        :param burst: 桶容量（允许的突发请求数），默认等于速率（约1秒的突发量）
+        """
+        self.rate_per_minute = max(1, int(rate_per_minute))
+        self.capacity = max(1, int(burst)) if burst else self.rate_per_minute
+        self.tokens = float(self.capacity)  # 初始满桶，允许开局快速识别
+        self.rate_per_sec = self.rate_per_minute / 60.0
+        self.last_refill = time.time()
+        self.lock = threading.Lock()
+
+    def _refill(self):
+        """按经过的时间补充令牌"""
+        now = time.time()
+        elapsed = now - self.last_refill
+        self.tokens = min(self.capacity, self.tokens + elapsed * self.rate_per_sec)
+        self.last_refill = now
+
+    def acquire(self, timeout=None):
+        """获取一个令牌；桶空时阻塞等待，直至有令牌可用（或超时抛出异常）"""
+        deadline = (time.time() + timeout) if timeout else None
+        while True:
+            with self.lock:
+                self._refill()
+                if self.tokens >= 1.0:
+                    self.tokens -= 1.0
+                    return True
+                # 计算还需等待时间
+                wait = (1.0 - self.tokens) / self.rate_per_sec
+            if deadline is not None and time.time() + wait > deadline:
+                raise Exception(f"速率限制等待超时（{timeout}s内未获得请求令牌）")
+            time.sleep(min(wait, 0.1))
+
+
 # Provider基类
 class BaseProvider:
     """AI OCR服务提供商基类"""
-    
+
+    @staticmethod
+    def _split_api_keys(api_key):
+        """解析API密钥字段：支持用逗号/分号/换行分隔多个密钥（密钥池）。
+
+        单个密钥时返回单元素列表；分隔符解析遵循"明文口令不允许独立成字段"原则，
+        只按用户显式填入的分隔符切分。空字符串不参与轮询。
+        """
+        if not api_key:
+            return []
+        keys = re.split(r"[,;\n]", str(api_key))
+        return [k.strip() for k in keys if k and k.strip()]
+
     def __init__(self, api_key, api_base=None, model=None, timeout=30, proxy_url=None):
-        self.api_key = api_key
+        if api_key:
+            self.api_keys = self._split_api_keys(api_key) or [api_key]
+        else:
+            self.api_keys = []
+        self._key_index = 0
+        self.api_key = self.api_keys[0] if self.api_keys else (api_key or "")
         self.api_base = api_base
         self.model = model
         self.timeout = timeout
         self.proxy_url = proxy_url
-        
+
+    def rotate_key(self):
+        """轮询切换到下一个API密钥（多密钥池场景）。单密钥时无副作用。"""
+        if len(self.api_keys) > 1:
+            self._key_index = (self._key_index + 1) % len(self.api_keys)
+            self.api_key = self.api_keys[self._key_index]
+        return self.api_key
+
     def get_default_api_base(self):
         """获取默认API基础URL"""
         raise NotImplementedError
@@ -858,20 +925,20 @@ class GroqProvider(BaseProvider):
             raise Exception(f"解析Groq响应失败: {str(e)}")
 
 
-# 无问芯穷 Provider
-class InfinigenceProvider(BaseProvider):
-    """无问芯穷服务提供商"""
+# 腾讯混元 Provider
+class HunyuanProvider(BaseProvider):
+    """腾讯混元服务提供商 (OpenAI兼容协议)"""
 
     def get_default_api_base(self):
-        return "https://cloud.infini-ai.com/maas/v1"
+        return "https://tokenhub.tencentmaas.com/v1"
 
     def get_default_model(self):
-        return ""
+        return "hy-vision-2.0-instruct"
 
     def build_headers(self):
         return {
             "Content-Type": "application/json",
-            "Accept": "application/json, text/event-stream",
+            "Accept": "application/json",
             "Authorization": f"Bearer {self.api_key}"
         }
 
@@ -893,7 +960,6 @@ class InfinigenceProvider(BaseProvider):
                 }
             ],
             "stream": False,
-            "enable_thinking": False,
             "temperature": 0.7,
             "max_tokens": 5000
         }
@@ -907,7 +973,7 @@ class InfinigenceProvider(BaseProvider):
             else:
                 return None
         except Exception as e:
-            raise Exception(f"解析无问芯穷响应失败: {str(e)}")
+            raise Exception(f"解析腾讯混元响应失败: {str(e)}")
 
 
 # Mistral Provider
@@ -918,7 +984,7 @@ class MistralProvider(BaseProvider):
         return "https://api.mistral.ai/v1"
 
     def get_default_model(self):
-        return "pixtral-12b-2409"  # 默认使用视觉模型
+        return "mistral-ocr-latest"  # 默认使用OCR模型（即mistral-ocr-4-0）
 
     def build_headers(self):
         return {
@@ -1378,6 +1444,71 @@ class PPStructureV3Provider(BaseProvider):
             raise Exception(f"解析PP-StructureV3响应失败: {str(e)}")
 
 
+# 面壁智能（ModelBest）文档解析 Provider
+# 文档: https://platform.modelbest.ai/console/docs/models/document-parse
+# 同步: POST {base}/v1/document-parse（单张图片，JSON image=base64/dataURI）
+# 异步: POST {base}/v1/document-parse/jobs（multipart，支持大图/PDF）→ 轮询 GET .../jobs/{id}
+# 响应: choices[0].message.content = 页面 Markdown（HTML表格/LaTeX公式）
+#       ocr.blocks[] = {order, label, bbox[x1,y1,x2,y2], content, status} 真实坐标块
+# 鉴权: Authorization: Bearer <MAP API Key>（platform.modelbest.ai → API Keys 获取）
+class ModelbestProvider(BaseProvider):
+    """面壁智能（ModelBest）文档解析服务提供商 - MiniCPM-OCR 同步/异步模式"""
+
+    # 同步请求 JSON 体积上限 32MiB，base64 膨胀约 1.37 倍，原始图片超过 20MiB 时直接走异步
+    ASYNC_IMAGE_THRESHOLD = 20 * 1024 * 1024
+
+    def get_default_api_base(self):
+        return "https://api.modelbest.ai"
+
+    def get_default_model(self):
+        return "MiniCPM-OCR-1.0"
+
+    def build_headers(self):
+        return {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {self.api_key}",
+        }
+
+    def build_payload(self, image_base64, prompt):
+        return {}
+
+    def parse_response(self, response_text):
+        """解析为 {"__modelbest__": page_dict}（与其他 Provider 返回纯文本不同）。
+
+        page_dict 为归一化后的单页结果（同步响应或异步 job 的 pages[] 项），
+        由 Api._convert_to_umi_format 按输出格式（纯文本/坐标/Markdown）分别消费，
+        全程不落实例状态，天然线程安全（多图并发识别）。
+        """
+        page = self._extract_page(response_text)
+        if not page:
+            return {}
+        return {"__modelbest__": page}
+
+    def _extract_page(self, response_text):
+        """从同步响应或异步 job 响应中提取第一个有效页面。"""
+        try:
+            data = json.loads(response_text)
+        except Exception as e:
+            raise Exception(f"解析面壁智能响应失败: {str(e)}")
+        err = data.get("error") if isinstance(data, dict) else None
+        if err:
+            msg = err.get("message") if isinstance(err, dict) else str(err)
+            raise Exception(f"面壁智能 API错误: {msg}")
+        # 异步 job 响应：{status, pages: [...], markdown, error}
+        if isinstance(data, dict) and isinstance(data.get("pages"), list):
+            for p in data["pages"]:
+                if isinstance(p, dict) and p.get("ocr"):
+                    return p
+            md = data.get("markdown")
+            if isinstance(md, str) and md.strip():
+                return {"choices": [{"message": {"content": md}}]}
+            raise Exception(f"面壁智能任务无有效页面结果 (status={data.get('status')})")
+        # 同步单页响应：{choices, ocr, metadata}
+        if isinstance(data, dict) and (data.get("choices") or data.get("ocr")):
+            return data
+        raise Exception(f"面壁智能响应格式异常: {response_text[:300]}")
+
+
 # Longcat AI Provider
 class LongcatProvider(BaseProvider):
     """Longcat AI服务提供商 - OpenAI兼容API"""
@@ -1434,6 +1565,128 @@ class LongcatProvider(BaseProvider):
             raise Exception(f"解析Longcat响应失败: 无效的JSON格式。服务器返回内容: {response_text[:500]}")
         except Exception as e:
             raise Exception(f"解析Longcat响应失败: {str(e)}")
+
+
+# Agnes Provider
+class AgnesProvider(BaseProvider):
+    """Agnes服务提供商 - OpenAI兼容API"""
+
+    def get_default_api_base(self):
+        return "https://apihub.agnes-ai.com/v1"
+
+    def get_default_model(self):
+        return "agnes-2.0-flash"
+
+    def build_headers(self):
+        return {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {self.api_key}"
+        }
+
+    def build_payload(self, image_base64, prompt):
+        return {
+            "model": self.model or self.get_default_model(),
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": prompt},
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/jpeg;base64,{image_base64}"
+                            }
+                        }
+                    ]
+                }
+            ],
+            "max_tokens": 4000
+        }
+
+    def parse_response(self, response_text):
+        try:
+            if not response_text or not response_text.strip():
+                raise Exception("服务器返回了空响应")
+
+            data = json.loads(response_text)
+
+            if "error" in data:
+                error_msg = data["error"].get("message", str(data["error"]))
+                raise Exception(f"API错误: {error_msg}")
+
+            if "choices" in data and len(data["choices"]) > 0:
+                content = data["choices"][0]["message"]["content"]
+                return content
+            else:
+                return None
+        except json.JSONDecodeError:
+            raise Exception(f"解析Agnes响应失败: 无效的JSON格式。服务器返回内容: {response_text[:500]}")
+        except Exception as e:
+            raise Exception(f"解析Agnes响应失败: {str(e)}")
+
+
+# 讯飞星辰 MaaS Provider
+class XFlyunProvider(BaseProvider):
+    """讯飞星辰MaaS服务提供商 - OpenAI兼容API
+    文档: https://www.xfyun.cn/doc/spark/推理服务-http.html
+          https://www.xfyun.cn/doc/spark/图像理解API-http.html
+    支持模型: xoppaddleocrv16(PaddleOCR-VL-1.6)、xophunyuanocr(HunyuanOCR)
+    注意: 讯飞平台模型名需使用xop前缀格式；DeepSeek-OCR暂不支持API调用
+    """
+
+    def get_default_api_base(self):
+        return "https://maas-api.cn-huabei-1.xf-yun.com/v2"
+
+    def get_default_model(self):
+        return "xoppaddleocrv16"
+
+    def build_headers(self):
+        return {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {self.api_key}"
+        }
+
+    def build_payload(self, image_base64, prompt):
+        return {
+            "model": self.model or self.get_default_model(),
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": prompt},
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/jpeg;base64,{image_base64}"
+                            }
+                        }
+                    ]
+                }
+            ],
+            "max_tokens": 4000,
+            "stream": False
+        }
+
+    def parse_response(self, response_text):
+        try:
+            if not response_text or not response_text.strip():
+                raise Exception("服务器返回了空响应")
+
+            data = json.loads(response_text)
+
+            if "error" in data:
+                error_msg = data["error"].get("message", str(data["error"]))
+                raise Exception(f"API错误: {error_msg}")
+
+            if "choices" in data and len(data["choices"]) > 0:
+                content = data["choices"][0]["message"]["content"]
+                return content
+            else:
+                return None
+        except json.JSONDecodeError:
+            raise Exception(f"解析讯飞星辰响应失败: 无效的JSON格式。服务器返回内容: {response_text[:500]}")
+        except Exception as e:
+            raise Exception(f"解析讯飞星辰响应失败: {str(e)}")
 
 
 # llama.cpp Provider (本地)
@@ -1497,6 +1750,7 @@ class ProviderFactory:
     def create_provider(provider_name, api_key, api_base=None, model=None, timeout=30, proxy_url=None):
         providers = {
             "openai": OpenAIProvider,
+            "custom_openai": OpenAIProvider,  # 自定义OpenAI兼容服务商，复用OpenAI实现
             "gemini": GeminiProvider,
             "xai": XAIProvider,
             "openrouter": OpenRouterProvider,
@@ -1508,7 +1762,7 @@ class ProviderFactory:
             "ollama": OllamaProvider,
             "lmstudio": LMStudioProvider,
             "groq": GroqProvider,
-            "infinigence": InfinigenceProvider,
+            "hunyuan": HunyuanProvider,
             "mistral": MistralProvider,
             "modelscope": ModelScopeProvider,
             "mimo": MiMoProvider,
@@ -1520,8 +1774,11 @@ class ProviderFactory:
             "paddle_vl_16": PaddleVL16Provider,  # 新增：PaddleOCR-VL-1.6 Provider
             "pp_structure_v3": PPStructureV3Provider,  # 新增：PP-StructureV3 Provider
             "longcat": LongcatProvider,  # 新增：Longcat AI Provider
+            "agnes": AgnesProvider,  # 新增：Agnes Provider
+            "xflyun": XFlyunProvider,  # 新增：讯飞星辰 MaaS Provider
             "opencode_go": OpenAIProvider,  # OpenCode Go（OpenAI兼容网关）
             "opencode_zen": OpenAIProvider,  # OpenCode Zen（OpenAI兼容网关）
+            "modelbest": ModelbestProvider,  # 面壁智能（ModelBest）文档解析
             "llamacpp": LlamaCppProvider,
 
         }
@@ -1911,6 +2168,8 @@ class Api:
         self.http_client = None
         # 兼容新旧键名
         self.max_concurrent = globalArgd.get("z_max_concurrent", globalArgd.get("max_concurrent", 3))
+        # 令牌桶限速器（单位时间请求数控制，0=不限制）
+        self.rate_limiter = TokenBucket(int(globalArgd.get("z_rate_limit", 0))) if int(globalArgd.get("z_rate_limit", 0)) > 0 else None
         self.executor = None
         
         # 保存全局配置
@@ -1951,12 +2210,22 @@ class Api:
             # 根据选择的服务商获取对应的API密钥和模型
             api_key = self.global_config.get(f"{provider_name}_api_key", "")
             model = self.global_config.get(f"{provider_name}_model", "")
-            
+
+            # 模型下拉菜单：选择"自定义"时改用 {provider}_model_custom 手填值。
+            # 旧版配置（模型为手填字符串）原样透传，完全向后兼容。
+            if isinstance(model, str) and model.strip() == "__custom__":
+                model = self.global_config.get(f"{provider_name}_model_custom", "")
+                if not model:
+                    from .ai_ocr_config import get_provider_default_model
+                    model = get_provider_default_model(provider_name)
+            if isinstance(model, str):
+                model = model.strip()
+
             # 获取自定义 API 地址（如果有的话）
             api_base = self.global_config.get(f"{provider_name}_api_base", "")
-            
+
             # PaddleOCR系列：旧版model字段存的是API URL，需跳过并使用默认模型名
-            if provider_name in ("paddle", "paddle_vl_16", "pp_structure_v3"):
+            if provider_name in ("paddle", "paddle_vl_16", "pp_structure_v3", "modelbest"):
                 if isinstance(model, str) and (model.startswith("http://") or model.startswith("https://") or model.startswith("/")):
                     model = ""
             
@@ -1964,12 +2233,12 @@ class Api:
             timeout = self.global_config.get("a_timeout", self.global_config.get("timeout", 30))
             proxy_url = self.global_config.get("z_proxy_url", self.global_config.get("proxy_url", ""))
             
-            # 对于本地服务（Ollama、LM Studio），API密钥可以为空
-            if not api_key and provider_name not in ["ollama", "lmstudio"]:
+            # 对于本地服务（Ollama、LM Studio、llama.cpp），API密钥可以为空
+            if not api_key and provider_name not in ["ollama", "lmstudio", "llamacpp"]:
                 return f"[Error] {provider_name} 的API密钥不能为空，请在设置中配置"
-            
+
             if not model:
-                if provider_name in ("paddle", "paddle_vl_16", "pp_structure_v3"):
+                if provider_name in ("paddle", "paddle_vl_16", "pp_structure_v3", "modelbest"):
                     from .ai_ocr_config import get_provider_default_model
                     model = get_provider_default_model(provider_name)
                 if not model:
@@ -2005,7 +2274,13 @@ class Api:
             
             # 创建线程池
             self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=max_workers)
-            
+
+            # 首次使用某平台时后台补拉一次在线模型列表（有缓存则跳过，失败静默）
+            try:
+                _auto_fetch_missing_models(provider_name)
+            except Exception:
+                pass
+
             return ""
         except Exception as e:
             return f"[Error] 启动失败: {str(e)}"
@@ -2059,65 +2334,153 @@ class Api:
             return self._create_error_result(f"处理图片字节流失败: {str(e)}")
     
     def _ensure_paddle_detector(self):
-        """加载并启动 PaddleOCR-json 检测器"""
+        """加载并启动文本检测器（根据用户配置选择 PP-OCRv6 ONNX 或旧版 v3）"""
         if getattr(self, 'detector', None):
             return
         try:
             base_dir = os.path.dirname(__file__)
-            plugins_root = os.path.normpath(os.path.join(base_dir, '..'))
-            detector_path = None
-            # 先查找 AIOCR 内置的 Paddle 目录
-            embedded_candidates = [
-                os.path.join(base_dir, 'paddle_detector', 'PPOCR_umi.py'),
-                os.path.join(base_dir, 'detectors', 'paddle', 'PPOCR_umi.py'),
-                os.path.join(base_dir, 'vendor_paddle', 'PPOCR_umi.py'),
-            ]
-            for candidate in embedded_candidates:
-                if os.path.isfile(candidate):
-                    detector_path = candidate
-                    break
-            # 若未找到内置目录，再兼容多种外部目录名：如 win7_x64_PaddleOCR-json、PaddleOCR-json 等
-            if not detector_path:
-                for name in os.listdir(plugins_root):
-                    try:
-                        if 'PaddleOCR-json' in name:
-                            candidate = os.path.join(plugins_root, name, 'PPOCR_umi.py')
-                            if os.path.isfile(candidate):
-                                detector_path = candidate
-                                break
-                    except Exception:
-                        continue
-            if not detector_path:
-                raise RuntimeError('未找到 PaddleOCR-json 检测器。可选方案：将完整引擎目录打包到 AIOCR/paddle_detector，或放在 plugins/win7_x64_PaddleOCR-json')
-            # 动态导入模块
-            # 以临时包方式加载，确保相对导入可用
-            pkg_name = 'AIOCR_embedded_paddle'
-            pkg_path = os.path.dirname(detector_path)
-            if pkg_name not in sys.modules:
-                pkg = types.ModuleType(pkg_name)
-                pkg.__path__ = [pkg_path]
-                sys.modules[pkg_name] = pkg
-            spec = importlib.util.spec_from_file_location(f'{pkg_name}.PPOCR_umi', detector_path)
-            module = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(module)
-            DetectorApi = getattr(module, 'Api', None)
-            if DetectorApi is None:
-                raise RuntimeError('PPOCR_umi.py 中未找到 Api 类')
-            # 构造必要的全局参数，避免 KeyError
-            default_global = {
-                'enable_mkldnn': True,
-                'cpu_threads': os.cpu_count() or 4,
-                'ram_max': -1,
-                'ram_time': 60,
+            # 检测器版本和模型大小为全局配置；检测分辨率为局部配置
+            global_cfg = getattr(self, 'global_config', {}) or {}
+            local = getattr(self, 'local_config', {}) or {}
+            detector_version = global_cfg.get('a_v6_detector_version', 'v6_onnx')
+            model_size = global_cfg.get('a_v6_model_size', 'small')
+            limit_side_len = int(local.get('dual_limit_side_len', 1440))
+
+            # 模型大小 -> ONNX 文件名映射
+            model_file_map = {
+                'tiny': 'PP-OCRv6_det_tiny.onnx',
+                'small': 'PP-OCRv6_det_small.onnx',
+                'medium': 'PP-OCRv6_det_medium.onnx',
             }
-            self.detector = DetectorApi(default_global)
-            # 启动引擎（局部参数可为空）
-            err = self.detector.start({})
-            if isinstance(err, str) and err.startswith('[Error]'):
-                raise RuntimeError(err)
+            model_filename = model_file_map.get(model_size, 'PP-OCRv6_det_small.onnx')
+
+            v6_detector_path = os.path.join(base_dir, 'paddle_detector_v6', 'detector.py')
+            v6_available = os.path.isfile(v6_detector_path)
+
+            # 根据用户选择决定加载顺序
+            use_v6_first = (detector_version == 'v6_onnx') and v6_available
+
+            if use_v6_first:
+                try:
+                    self._load_v6_detector(v6_detector_path, base_dir, model_filename, limit_side_len)
+                    return
+                except Exception as e_v6:
+                    if sys.platform != 'win32':
+                        # Linux/macOS：内置 ONNX Runtime / pyclipper 库与旧版 v3 检测器
+                        # （PaddleOCR-json.exe）均为 Windows 专属，无法复用
+                        self.detector = None
+                        raise RuntimeError(
+                            f"当前平台 ({sys.platform}) 无法加载内置检测器（仅支持 Windows）。"
+                            f"Linux/macOS 可尝试通过 pip 安装 onnxruntime 与 opencv-python 后重试；"
+                            f"或改用\"仅AI高精度识别\"策略（纯文本，不依赖本地检测）。"
+                            f"原始错误: {e_v6}"
+                        )
+                    print(f"[AIOCR] PP-OCRv6 ONNX 检测器加载失败: {e_v6}，尝试回退到旧版...")
+                    # 继续尝试旧版
+
+            # 加载旧版 PaddleOCR-json 检测器
+            if detector_version == 'v3_legacy':
+                print("[AIOCR] 用户选择使用旧版 PP-OCRv3 检测器")
+            self._load_v3_detector(base_dir)
         except Exception as e:
             self.detector = None
-            raise RuntimeError(f"PaddleOCR 检测器启动失败: {e}")
+            raise RuntimeError(f"文本检测器启动失败: {e}")
+
+    def _load_v6_detector(self, v6_detector_path, base_dir, model_filename, limit_side_len):
+        """加载 PP-OCRv6 ONNX 检测器（仅检测，不识别）"""
+        # 检查模型文件是否存在
+        models_dir = os.path.join(base_dir, 'paddle_detector_v6', 'models')
+        model_path = os.path.join(models_dir, model_filename)
+        if not os.path.isfile(model_path):
+            # 回退到 models 目录下任意 .onnx 文件
+            available = []
+            if os.path.isdir(models_dir):
+                available = [f for f in os.listdir(models_dir) if f.endswith('.onnx')]
+            hint = f"可用模型: {available}" if available else "models 目录为空或不存在"
+            raise RuntimeError(
+                f"未找到模型文件 {model_filename}。{hint}。"
+                f"请从 https://www.modelscope.cn/models/RapidAI/RapidOCR 下载对应模型。"
+            )
+
+        # 动态导入 paddle_detector_v6 包
+        pkg_name = 'AIOCR_paddle_detector_v6'
+        pkg_path = os.path.join(base_dir, 'paddle_detector_v6')
+        if pkg_name not in sys.modules:
+            pkg = types.ModuleType(pkg_name)
+            pkg.__path__ = [pkg_path]
+            sys.modules[pkg_name] = pkg
+        spec = importlib.util.spec_from_file_location(
+            f'{pkg_name}.detector', v6_detector_path
+        )
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        DetectorApi = getattr(module, 'Api', None)
+        if DetectorApi is None:
+            raise RuntimeError('paddle_detector_v6/detector.py 中未找到 Api 类')
+        # 构造全局参数：指定模型文件名和检测分辨率
+        default_global = {
+            'cpu_threads': os.cpu_count() or 4,
+            'limit_side_len': limit_side_len,
+            'det_model': model_filename,
+        }
+        self.detector = DetectorApi(default_global)
+        err = self.detector.start({})
+        if isinstance(err, str) and err.startswith('[Error]'):
+            raise RuntimeError(err)
+        print(f"[AIOCR] 已加载 PP-OCRv6 ONNX 检测器（模型: {model_filename}, 分辨率: {limit_side_len}）")
+
+    def _load_v3_detector(self, base_dir):
+        """加载旧版 PaddleOCR-json 检测器（兼容回退）"""
+        plugins_root = os.path.normpath(os.path.join(base_dir, '..'))
+        detector_path = None
+        embedded_candidates = [
+            os.path.join(base_dir, 'paddle_detector', 'PPOCR_umi.py'),
+            os.path.join(base_dir, 'detectors', 'paddle', 'PPOCR_umi.py'),
+            os.path.join(base_dir, 'vendor_paddle', 'PPOCR_umi.py'),
+        ]
+        for candidate in embedded_candidates:
+            if os.path.isfile(candidate):
+                detector_path = candidate
+                break
+        if not detector_path:
+            for name in os.listdir(plugins_root):
+                try:
+                    if 'PaddleOCR-json' in name:
+                        candidate = os.path.join(plugins_root, name, 'PPOCR_umi.py')
+                        if os.path.isfile(candidate):
+                            detector_path = candidate
+                            break
+                except Exception:
+                    continue
+        if not detector_path:
+            raise RuntimeError(
+                '未找到文本检测器。请在设置中选择 PP-OCRv6 ONNX 检测器，'
+                '或确保 paddle_detector 目录存在。'
+            )
+        # 动态导入旧版模块
+        pkg_name = 'AIOCR_embedded_paddle'
+        pkg_path = os.path.dirname(detector_path)
+        if pkg_name not in sys.modules:
+            pkg = types.ModuleType(pkg_name)
+            pkg.__path__ = [pkg_path]
+            sys.modules[pkg_name] = pkg
+        spec = importlib.util.spec_from_file_location(f'{pkg_name}.PPOCR_umi', detector_path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        DetectorApi = getattr(module, 'Api', None)
+        if DetectorApi is None:
+            raise RuntimeError('PPOCR_umi.py 中未找到 Api 类')
+        default_global = {
+            'enable_mkldnn': True,
+            'cpu_threads': os.cpu_count() or 4,
+            'ram_max': -1,
+            'ram_time': 60,
+        }
+        self.detector = DetectorApi(default_global)
+        err = self.detector.start({})
+        if isinstance(err, str) and err.startswith('[Error]'):
+            raise RuntimeError(err)
+        print("[AIOCR] 已加载旧版 PaddleOCR-json 检测器（回退模式）")
 
     def _crop_by_box(self, img, box, padding=0):
         """根据检测框裁剪图像，支持矩形与四点多边形"""
@@ -2252,9 +2615,12 @@ class Api:
         try:
             self._ensure_paddle_detector()
         except Exception as e:
-            return {"code": 101, "data": f"[Error] {e}"}
+            # 检测器不可用（如 Linux 下内置 ONNX 库为 Windows 专属）时，
+            # 回退到 AI 直出，保证 AI 服务仍被调用（issue #28）
+            print(f"[AIOCR] 文本检测器不可用，回退到AI直出: {e}")
+            return self._run_ocr(image_base64, getattr(self, 'local_config', {}) or {})
         local = getattr(self, 'local_config', {})
-        max_boxes = int(local.get('dual_max_boxes', 30))
+        max_boxes = int(local.get('dual_max_boxes', 100))
         min_area = int(local.get('dual_min_area', 0))
         # 1) 先用Paddle识别获得文本与坐标（增加超时回退）
         paddle_timeout = int(local.get('paddle_timeout', 20))
@@ -2267,11 +2633,13 @@ class Api:
             print(f"[AIOCR] Paddle识别完成，耗时 {cost}s")
         except concurrent.futures.TimeoutError:
             print(f"[AIOCR] Paddle识别超时({paddle_timeout}s)，回退到AI直出")
-            return self._run_ocr(image_base64, self.local_config)
+            return self._run_ocr(image_base64, getattr(self, 'local_config', {}) or {})
         except Exception as e:
-            return {"code": 101, "data": f"Paddle识别异常: {str(e)}"}
+            print(f"[AIOCR] Paddle识别异常，回退到AI直出: {e}")
+            return self._run_ocr(image_base64, getattr(self, 'local_config', {}) or {})
         if not isinstance(det, dict) or det.get('code') != 100 or not isinstance(det.get('data'), list):
-            return {"code": 101, "data": "Paddle识别失败"}
+            print("[AIOCR] Paddle识别失败（无效返回），回退到AI直出")
+            return self._run_ocr(image_base64, getattr(self, 'local_config', {}) or {})
         items = det.get('data', [])
         if not items:
             return det
@@ -2319,13 +2687,16 @@ class Api:
             if area < min_area:
                 continue
             cy = (y0+y1)/2.0
+            # 仅保留检测框，不存储 Paddle 的识别文本（识别任务交给AI）
             filtered.append({
-                "text": (it.get('text') or it.get('content') or '').strip(),
+                "text": "",
                 "box": _poly_from_box(raw_box),
                 "center_y": cy,
             })
         filtered.sort(key=lambda v: v['center_y'])
         if max_boxes > 0:
+            if len(filtered) > max_boxes:
+                print(f"[AIOCR] 检测到 {len(filtered)} 个框，超过最大框数 {max_boxes}，截断")
             filtered = filtered[:max_boxes]
         # 新增：提前获取语言，便于AI回退
         language = local.get("language", "auto")
@@ -2337,61 +2708,75 @@ class Api:
             ai_only_text = self._run_ocr(image_base64, {"output_format": "text_only", "language": language})
             if isinstance(ai_only_text, dict) and ai_only_text.get("code") == 100:
                 return ai_only_text
-            return det
+            # AI 全部失败：返回空检测框列表（不回退到 Paddle 的识别文本，避免遮蔽）
+            return {"code": 101, "data": "AI识别失败且Paddle未检测到有效框"}
         # 3) 构建纠错提示，将Paddle识别与坐标作为上下文提供给AI
         language = local.get("language", "auto")
         provider_name = self.global_config.get("a_provider", self.global_config.get("provider", "openai"))
         if provider_name in ("paddle", "paddle_vl_16", "pp_structure_v3"):
-            crop_lines = self._recognize_lines_by_cropping(image_base64, filtered, language)
-            if crop_lines:
-                result_data = []
-                for idx, f in enumerate(filtered):
-                    text = crop_lines[idx] if idx < len(crop_lines) and crop_lines[idx] else f.get("text", "")
-                    result_data.append({"text": text, "box": f["box"], "score": 1.0})
-                if result_data:
-                    return {"code": 100, "data": result_data}
-            return det
+            # Paddle 在线服务自带检测+识别，整图调用一次 API 即可
+            # 裁剪小图逐一发送会导致版面分析模型(PP-StructureV3/PaddleOCR-VL)返回空结果，
+            # 且 N 次异步请求极其缓慢；改为整图识别后按行顺序匹配到本地检测框
+            try:
+                ai_result = self._run_ocr(image_base64, {"output_format": "text_only", "language": language})
+                if isinstance(ai_result, dict) and ai_result.get("code") == 100 and isinstance(ai_result.get("data"), list):
+                    ai_lines = [(it.get("text") or "").strip() for it in ai_result["data"] if isinstance(it, dict)]
+                    ai_lines = [t for t in ai_lines if t]
+                    if ai_lines:
+                        result_data = []
+                        for idx, f in enumerate(filtered):
+                            text = ai_lines[idx] if idx < len(ai_lines) else ""
+                            result_data.append({"text": text, "box": f["box"], "score": 1.0})
+                        return {"code": 100, "data": result_data}
+            except Exception as e:
+                print(f"[AIOCR] Paddle整图识别失败: {e}")
+            # 整图识别失败：返回空文本框（保留检测坐标）
+            return {"code": 100, "data": [{"text": "", "box": f["box"], "score": 1.0} for f in filtered]}
         lang_map = {"auto": "自动检测语言","zh": "中文","en": "英文","ja": "日文","ko":"韩文","fr":"法文","de":"德文","es":"西班牙文","ru":"俄文","ar":"阿拉伯文"}
         lang_instruction = lang_map.get(language, "自动检测语言")
-        candidates = [{"text": f["text"], "box": f["box"]} for f in filtered]
+        # 仅传递检测框坐标作为位置参考（不传递 Paddle 的识别文本，识别任务交给AI）
+        candidates = [{"box": f["box"]} for f in filtered]
         try:
-            ctx_json = json.dumps({"texts": candidates}, ensure_ascii=False)
+            ctx_json = json.dumps({"boxes": candidates}, ensure_ascii=False)
         except Exception:
-            # 构建纠错上下文失败，改用AI直出
+            # 构建上下文失败，改用AI直出
             ai_only_coords = self._run_ocr(image_base64, {"output_format": "with_coordinates", "language": language})
             if isinstance(ai_only_coords, dict) and ai_only_coords.get("code") == 100:
                 return ai_only_coords
             return self._run_ocr(image_base64, {"output_format": "text_only", "language": language})
         variant_note = ("严格禁止对中文进行繁体/简体转换、全角/半角转换、字符归一化；混合繁简时保持混合状态。逐字抄写图像字符，不要重写。示例：不要把 '台灣里体干' 改为 '臺灣裏體幹'，也不要相反。\n" if language in ("auto", "zh") else "")
         prompt = (
-            f"请基于这张图片和PaddleOCR的识别结果进行纠错，语言：{lang_instruction}。\n"
-            "保持每行数量与顺序不变，只修正识别错误，保留标点与空格。\n"
+            f"请识别这张图片中的文字，语言：{lang_instruction}。\n"
+            "图片已通过文本检测模块切分为多个文本块，下面是各文本块的位置坐标（按从上到下顺序）。\n"
+            "请按顺序识别每个文本块中的文字，每行输出一个文本块的内容。\n"
             + variant_note +
-            "仅输出纯文本，每行一个，顺序与Paddle一致。\n"
+            "仅输出纯文本，每行一个，顺序与下面的文本块一致。\n"
             "不要解释或添加其他内容。\n"
-            f"Paddle识别结果：```json\n{ctx_json}\n```"
+            f"文本块坐标：```json\n{ctx_json}\n```"
         )
         # 4) 发送请求并解析为统一格式（稳健映射：文本由AI，坐标用Paddle）
         try:
             response_text = self._send_request(image_base64, prompt)
             parsed = self.provider.parse_response(response_text)
             # 4.1 获取AI纠正的纯文本行（不依赖坐标结构）
+            # 注意：不做 text 非空过滤，保留空行以维持与 Paddle 框的 1:1 对齐
             text_only = self._convert_to_umi_format(parsed, {"output_format": "text_only"})
             ai_lines = []
             if isinstance(text_only, dict) and text_only.get("code") == 100 and isinstance(text_only.get("data"), list):
-                ai_lines = [item.get("text", "") for item in text_only.get("data") if isinstance(item, dict) and item.get("text")]
+                ai_lines = [item.get("text", "") for item in text_only.get("data") if isinstance(item, dict)]
             # 4.1.1 回退解析：若纯文本未提取到行，尝试解析JSON中的texts
             if not ai_lines:
                 coord_fmt = self._convert_to_umi_format(parsed, {"output_format": "with_coordinates"})
                 if isinstance(coord_fmt, dict) and coord_fmt.get("code") == 100 and isinstance(coord_fmt.get("data"), list):
-                    ai_lines = [item.get("text", "") for item in coord_fmt["data"] if isinstance(item, dict) and item.get("text")]
+                    ai_lines = [item.get("text", "") for item in coord_fmt["data"] if isinstance(item, dict)]
             print(f"[AIOCR] AI纠错行数: {len(ai_lines)} / Paddle行数: {len(filtered)}")
             bad_alignment = False
             try:
                 if len(ai_lines) == 0:
                     bad_alignment = True
                 elif len(filtered) > 0:
-                    if len(ai_lines) < int(len(filtered) * 0.8) or len(ai_lines) > int(len(filtered) * 1.2):
+                    # 收紧阈值：AI行数少于Paddle框数即触发回退（任意一行缺失都走逐框裁剪）
+                    if len(ai_lines) < len(filtered) or len(ai_lines) > int(len(filtered) * 1.2):
                         bad_alignment = True
                 if not bad_alignment and ai_lines:
                     max_len = max(len(t) for t in ai_lines if isinstance(t, str))
@@ -2401,11 +2786,27 @@ class Api:
                 bad_alignment = False
 
             if bad_alignment:
+                print(f"[AIOCR] 行数不匹配({len(ai_lines)} vs {len(filtered)})，优先尝试AI整图识别+坐标匹配")
+                # 优先走AI整图识别（快，用户反馈仅AI模式不丢内容），避免逐框裁剪卡住
+                try:
+                    ai_only_coords = self._run_ocr(image_base64, {"output_format": "with_coordinates", "language": language})
+                    if isinstance(ai_only_coords, dict) and ai_only_coords.get("code") == 100 and isinstance(ai_only_coords.get("data"), list):
+                        ai_text_count = sum(1 for it in ai_only_coords["data"] if isinstance(it, dict) and (it.get("text") or "").strip())
+                        if ai_text_count > 0:
+                            matched = self._match_ai_text_to_paddle_boxes(ai_only_coords["data"], items, max_boxes, min_area)
+                            if matched:
+                                print(f"[AIOCR] AI整图匹配成功，返回 {len(matched)} 行")
+                                return {"code": 100, "data": [{"text": m["text"], "box": m["box"], "score": m.get("score", 1.0)} for m in matched]}
+                except Exception as _e:
+                    print(f"[AIOCR] AI整图匹配失败: {str(_e)}")
+                # AI整图匹配失败，最后回退到逐框裁剪识别（慢）
+                print(f"[AIOCR] AI整图匹配失败，回退到逐框裁剪识别")
                 crop_lines = self._recognize_lines_by_cropping(image_base64, filtered, language)
                 if crop_lines:
                     result_data = []
                     for idx, f in enumerate(filtered):
-                        text = crop_lines[idx] if idx < len(crop_lines) and crop_lines[idx] else f.get("text", "")
+                        # AI 识别失败时返回空文本，不回退到 Paddle 的识别结果（避免遮蔽）
+                        text = crop_lines[idx] if idx < len(crop_lines) and crop_lines[idx] else ""
                         result_data.append({"text": text, "box": f["box"], "score": 1.0})
                     if result_data:
                         return {"code": 100, "data": result_data}
@@ -2441,21 +2842,23 @@ class Api:
                     if non_empty > 0:
                         result_data = []
                         for idx, f in enumerate(filtered):
-                            text = ai_crop_lines[idx] if idx < len(ai_crop_lines) and ai_crop_lines[idx] else f.get("text", "")
+                            # AI 识别失败时返回空文本，不回退到 Paddle 的识别结果（避免遮蔽）
+                            text = ai_crop_lines[idx] if idx < len(ai_crop_lines) and ai_crop_lines[idx] else ""
                             result_data.append({"text": text, "box": f["box"], "score": 1.0})
                         if result_data:
                             return {"code": 100, "data": result_data}
                 except Exception as _e2:
                     print(f"[AIOCR] 逐框裁剪纠错失败: {str(_e2)}")
-            # 4.3 统一组装输出：坐标始终使用Paddle，文本优先采用AI纠正
+            # 4.3 统一组装输出：坐标始终使用Paddle，文本仅来自AI（AI未识别的行返回空文本）
             result_data = []
             for idx, f in enumerate(filtered):
-                text = ai_lines[idx] if idx < len(ai_lines) else f.get("text", "")
+                # AI 未识别到该行时返回空文本，不回退到 Paddle 的识别结果（避免遮蔽）
+                text = ai_lines[idx] if idx < len(ai_lines) else ""
                 result_data.append({"text": text, "box": f["box"], "score": 1.0})
             if result_data:
                 return {"code": 100, "data": result_data}
-            # AI完全失败则回退到Paddle结果
-            return det
+            # AI 完全失败：返回空文本框（仅保留检测坐标，不返回 Paddle 识别文本）
+            return {"code": 100, "data": [{"text": "", "box": f["box"], "score": 1.0} for f in filtered]}
         except Exception:
             # AI纠错流程异常，改用AI直出
             ai_only_coords = self._run_ocr(image_base64, {"output_format": "with_coordinates", "language": language})
@@ -2528,7 +2931,7 @@ class Api:
                     poly = [[p[0], p[1]] for p in box[:4]]
             return poly
 
-        # 过滤有效的Paddle框，并按Y排序
+        # 过滤有效的Paddle框，并按Y排序（仅保留检测框，不存储 Paddle 识别文本）
         valid_boxes = []
         for it in paddle_items:
             box = it.get('box') or it.get('polygon') or it.get('points') or it.get('rect') or it.get('bbox')
@@ -2540,17 +2943,16 @@ class Api:
             if area < min_area:
                 continue
             center_y = (y0 + y1) / 2.0
-            local_text = (it.get('text') or it.get('content') or '').strip()
-            valid_boxes.append({'box': box, 'center_y': center_y, 'local_text': local_text})
+            valid_boxes.append({'box': box, 'center_y': center_y})
 
         valid_boxes.sort(key=lambda v: v['center_y'])
         if max_boxes > 0:
             valid_boxes = valid_boxes[:max_boxes]
 
-        # 简单顺序匹配：AI文本优先，不足时用Paddle文本兜底
+        # 简单顺序匹配：文本仅来自AI，AI文本不足时返回空文本（不回退到 Paddle 识别文本，避免遮蔽）
         results = []
         for i, vb in enumerate(valid_boxes):
-            text = ai_texts[i] if i < len(ai_texts) else vb['local_text']
+            text = ai_texts[i] if i < len(ai_texts) else ""
             poly = _poly_from_box(vb['box'])
             results.append({"text": text, "box": poly, "score": 1.0})
 
@@ -2566,10 +2968,14 @@ class Api:
                 output_format = local.get('output_format', 'text_only')
                 self._current_output_format = output_format
                 provider_name = self.global_config.get("a_provider", self.global_config.get("provider", "openai"))
-                # markdown格式：PaddleOCR-VL/StructureV3原生支持markdown，直接调用API获取
-                if output_format == 'markdown' and provider_name in ('paddle_vl_16', 'pp_structure_v3'):
+                # markdown格式：PaddleOCR-VL/StructureV3/面壁智能原生支持markdown，直接调用API获取
+                if output_format == 'markdown' and provider_name in ('paddle_vl_16', 'pp_structure_v3', 'modelbest'):
                     processed_base64 = self._preprocess_image(imageBase64)
                     result = self._run_ocr(processed_base64, {"output_format": "markdown", "language": local.get("language", "auto")})
+                # 面壁智能：文档解析模型自带真实坐标块，无需本地检测+裁剪，整图直出坐标
+                elif provider_name == 'modelbest' and strategy in ('ai_high_precision_with_coordinates', 'paddle_first_correction'):
+                    processed_base64 = self._preprocess_image(imageBase64)
+                    result = self._run_ocr(processed_base64, {"output_format": "with_coordinates", "language": local.get("language", "auto")})
                 # 含位置版：Paddle检测框 + AI纠错文本
                 elif strategy in ('ai_high_precision_with_coordinates', 'paddle_first_correction'):
                     result = self._run_paddle_first_correction(imageBase64)
@@ -2673,7 +3079,12 @@ class Api:
                 except Exception as e:
                     if attempt == max_retries:
                         raise e
-                    time.sleep(1)  # 重试前等待
+                    # 429限流：指数退避等待更久；其他错误按次数递增等待
+                    err_text = str(e)
+                    if "429" in err_text or "Too Many Requests" in err_text:
+                        time.sleep(min(2 ** attempt * 5, 30))
+                    else:
+                        time.sleep(1 + attempt)  # 重试前等待
                     
         except Exception as e:
             return self._create_error_result(str(e))
@@ -2723,6 +3134,16 @@ class Api:
             provider_name = self.global_config.get("a_provider", self.global_config.get("provider", "unknown"))
         except Exception:
             provider_name = "unknown"
+        # 多密钥池：每次调用前轮询到下一个密钥（单密钥时无副作用）
+        try:
+            if hasattr(self.provider, "rotate_key"):
+                self.provider.rotate_key()
+        except Exception:
+            pass
+        # 令牌桶限速：所有"提交类"API请求前获取令牌（含Paddle/MinerU/NIM异步提交；
+        # 不限制任务轮询GET，避免拖慢识别）
+        if self.rate_limiter is not None:
+            self.rate_limiter.acquire(timeout=min(self.http_client.timeout, 60))
         print(f"[AIOCR] 调用 {provider_name} / 模型 {getattr(self.provider, 'model', None)} / 超时 {getattr(self.http_client, 'timeout', None)}s")
         if provider_name == "mineru":
             return self._send_mineru_request(image_base64)
@@ -2732,6 +3153,8 @@ class Api:
             return self._send_paddle_async_request(image_base64)
         if provider_name == "nvidia_nim":
             return self._send_nvidia_nim_request(image_base64, prompt)
+        if provider_name == "modelbest":
+            return self._send_modelbest_request(image_base64)
         # 构建请求URL
         api_base = self.provider.api_base or self.provider.get_default_api_base()
         provider_name = self.global_config.get("a_provider", self.global_config.get("provider", "openai"))
@@ -3055,6 +3478,197 @@ class Api:
                 layout_res = r.get("layoutParsingResults", [])
                 sync_result["result"]["layoutParsingResults"].extend(layout_res)
             return json.dumps(sync_result, ensure_ascii=False)
+
+    def _send_modelbest_request(self, image_base64):
+        """面壁智能文档解析：同步优先（单图直出），大图自动转异步任务。
+
+        同步：POST {base}/v1/document-parse（JSON body ≤32MiB，原始图 ≤24MiB）
+        异步：POST {base}/v1/document-parse/jobs（multipart）→ 轮询 GET .../jobs/{id}
+        """
+        api_base = (self.provider.api_base or self.provider.get_default_api_base()).rstrip("/")
+        model_name = self.provider.model or self.provider.get_default_model()
+        local_cfg = getattr(self, "local_config", {}) or {}
+        upright = bool(local_cfg.get("modelbest_upright", True))
+        seal = bool(local_cfg.get("modelbest_recognize_seal", True))
+
+        raw_b64 = image_base64
+        if isinstance(raw_b64, str) and raw_b64.startswith("data:image"):
+            raw_b64 = raw_b64.split(",", 1)[-1]
+        image_bytes = base64.b64decode(raw_b64, validate=False)
+
+        # 原始图超过阈值（base64 后逼近 32MiB JSON 上限）时直接走异步
+        threshold = getattr(self.provider, "ASYNC_IMAGE_THRESHOLD", 20 * 1024 * 1024)
+        if len(image_bytes) <= threshold:
+            headers = self.provider.build_headers()
+            payload = {
+                "model": model_name,
+                "image": raw_b64,
+                "upright": upright,
+                "recognize_seal": seal,
+            }
+            resp = self.http_client.post(f"{api_base}/v1/document-parse", headers, json.dumps(payload))
+            if resp["status_code"] == 200:
+                return resp["text"]
+            # 体积/格式导致的 400/413 回退异步重试一次；其余错误直接报出
+            if resp["status_code"] not in (400, 413):
+                raise Exception(f"面壁智能 API请求失败 (状态码: {resp['status_code']}): {resp['text'][:500]}")
+        return self._modelbest_async_request(image_bytes, model_name, upright, seal, api_base)
+
+    def _modelbest_async_request(self, image_bytes, model_name, upright, seal, api_base):
+        """面壁智能异步任务：multipart 提交 → 轮询至终态 → 返回 job JSON 文本。"""
+        headers = {"Authorization": f"Bearer {self.provider.api_key}"}
+        files = {
+            "file": {
+                "filename": "image.jpg",
+                "content": image_bytes,
+                "content_type": "image/jpeg",
+            }
+        }
+        data = {
+            "model": model_name,
+            "upright": "true" if upright else "false",
+            "recognize_seal": "true" if seal else "false",
+        }
+        submit_resp = self.http_client.post_multipart(
+            f"{api_base}/v1/document-parse/jobs", headers=headers, files=files, data=data
+        )
+        if submit_resp["status_code"] not in (200, 202):
+            raise Exception(f"面壁智能提交任务失败 (状态码: {submit_resp['status_code']}): {submit_resp['text'][:500]}")
+        try:
+            submit_data = json.loads(submit_resp["text"])
+        except Exception:
+            raise Exception(f"面壁智能任务响应解析失败: {submit_resp['text'][:300]}")
+        job_id = submit_data.get("id")
+        if not job_id:
+            raise Exception(f"面壁智能未返回任务ID: {submit_resp['text'][:300]}")
+
+        timeout = getattr(self.http_client, "timeout", 30)
+        max_wait = max(90, timeout * 4)
+        poll_url = f"{api_base}/v1/document-parse/jobs/{job_id}"
+        poll_headers = {
+            "Authorization": f"Bearer {self.provider.api_key}",
+            "Content-Type": "application/json",
+        }
+        intervals = [1.0, 1.5, 2.0]
+        start_ts = time.time()
+        poll_count = 0
+        while time.time() - start_ts < max_wait:
+            idx = min(poll_count, len(intervals) - 1)
+            try:
+                poll_resp = self.http_client.get(poll_url, headers=poll_headers)
+            except Exception:
+                time.sleep(intervals[idx])
+                poll_count += 1
+                continue
+            if poll_resp.get("status_code") != 200:
+                time.sleep(intervals[idx])
+                poll_count += 1
+                continue
+            try:
+                poll_data = json.loads(poll_resp.get("text", ""))
+            except Exception:
+                time.sleep(intervals[idx])
+                poll_count += 1
+                continue
+            status = poll_data.get("status", "")
+            if status == "Success":
+                return poll_resp["text"]
+            if status in ("Failed", "Cancelled"):
+                err = poll_data.get("error") or status
+                if isinstance(err, dict):
+                    err = err.get("message") or json.dumps(err, ensure_ascii=False)
+                label = "解析失败" if status == "Failed" else "已取消"
+                raise Exception(f"面壁智能任务{label}: {err}")
+            time.sleep(intervals[idx])
+            poll_count += 1
+        raise Exception(f"面壁智能异步解析超时（{max_wait}s）")
+
+    def _convert_modelbest_page(self, page, output_format):
+        """面壁智能：归一化页面 → Umi 结果。
+
+        - markdown：整页 Markdown 单块输出
+        - text_only / with_coordinates：直接使用文档解析返回的真实坐标块
+          （ocr.blocks[].bbox 为 [x1,y1,x2,y2]，坐标系为 ocr.image_width/height）
+        """
+        if output_format == "markdown":
+            content = ""
+            try:
+                content = page.get("choices", [{}])[0].get("message", {}).get("content") or ""
+            except Exception:
+                content = ""
+            if not content and isinstance(page.get("markdown"), str):
+                content = page["markdown"]
+            content = remove_image_tags(content)
+            if not content.strip():
+                return self._create_empty_result()
+            return self._parse_markdown(content)
+        return self._parse_modelbest_blocks(page)
+
+    def _parse_modelbest_blocks(self, page):
+        """面壁智能：解析真实坐标块。按阅读顺序输出，跳过 failed/skipped 块。"""
+        ocr = page.get("ocr") or {}
+        blocks = [b for b in (ocr.get("blocks") or []) if isinstance(b, dict)]
+        # 结果坐标基于 ocr.image_width/height；若与服务端缩放/旋转后的尺寸不一致，
+        # 先线性归一到发送图（processed）坐标系，再统一映射回原图
+        ow = float(ocr.get("image_width") or 0)
+        oh = float(ocr.get("image_height") or 0)
+        proc = self.processed_size or self.original_size
+        sx = sy = 1.0
+        if proc and ow > 0 and oh > 0 and (abs(proc[0] - ow) > 1 or abs(proc[1] - oh) > 1):
+            sx = proc[0] / ow
+            sy = proc[1] / oh
+
+        def _order_key(b):
+            o = b.get("order")
+            return o if isinstance(o, (int, float)) else 10 ** 9
+
+        items = []
+        for b in sorted(blocks, key=_order_key):
+            if b.get("status") not in (None, "", "ok"):
+                continue  # failed / skipped_no_vlm / skipped_seal
+            text = str(b.get("content") or "").strip()
+            if not text:
+                continue
+            bbox = b.get("bbox")
+            if not (isinstance(bbox, (list, tuple)) and len(bbox) == 4):
+                regions = b.get("regions")
+                if isinstance(regions, list) and regions and isinstance(regions[0], (list, tuple)) and len(regions[0]) == 4:
+                    bbox = regions[0]
+                else:
+                    continue
+            try:
+                x1, y1, x2, y2 = [float(v) for v in bbox]
+            except Exception:
+                continue
+            box = [
+                [x1 * sx, y1 * sy],
+                [x2 * sx, y1 * sy],
+                [x2 * sx, y2 * sy],
+                [x1 * sx, y2 * sy],
+            ]
+            items.append({
+                "text": text,
+                "box": self._map_coordinates_to_original(box),
+                "score": 1.0,
+            })
+        if not items:
+            return self._create_empty_result()
+        return {"code": 100, "data": items}
+
+    def fetch_provider_models(self, provider=None):
+        """拉取平台在线模型列表（供按钮钩子与脚本复用）。
+
+        provider 为空时拉取当前选中的服务商；返回 {provider: {...结果...}}。
+        """
+        try:
+            from .model_lists import fetch_all_configured, read_saved_ui_settings
+        except Exception as e:
+            raise Exception(f"模型列表模块加载失败: {e}")
+        settings = read_saved_ui_settings()
+        if provider is None:
+            provider = self.global_config.get("a_provider", self.global_config.get("provider"))
+        providers = [provider] if provider else None
+        return fetch_all_configured(providers=providers, settings=settings)
 
     def _send_nvidia_nim_request(self, image_base64, prompt):
         """NVIDIA NIM请求：支持200直接返回和202异步轮询两种模式
@@ -3424,6 +4038,10 @@ class Api:
         """转换为Umi格式"""
         output_format = config.get("output_format", "text_only")
         provider_name = self.global_config.get("a_provider", self.global_config.get("provider", "openai"))
+
+        # 面壁智能：文档解析返回归一化页面字典，按输出格式分别消费
+        if provider_name == "modelbest" and isinstance(content, dict) and "__modelbest__" in content:
+            return self._convert_modelbest_page(content["__modelbest__"], output_format)
 
         if provider_name == "mineru":
             return self._parse_text_only(content)
@@ -3802,3 +4420,236 @@ class Api:
 
         return result
 
+
+
+# ============================================================
+# =============== 模型列表拉取钩子（按钮联动） ===============
+# ============================================================
+# 全局设置中的"拉取模型列表"按钮通过 QML callPy("ocr", "aioFetchModels") 触发，
+# 该调用落到 Umi-OCR 核心的 MissionOCR 对象上。插件在导入时把拉取方法挂载到
+# MissionOCR（猴子补丁），从而无需改动 Umi-OCR 核心代码。
+# 注意：按钮文案点击后调用字符串形式的 onClicked 需要 Umi-OCR 的 Configs.qml
+# 支持字符串分发（安装检测见 ai_ocr_config.CORE_SUPPORTS_BTN_CALL），不支持时
+# 按钮不渲染，用户可通过"刷新模型列表.bat"脚本离线拉取（重启后生效）。
+
+_FETCH_NOTIFIER = None  # 主线程通知器（弹窗 + 下拉菜单热刷新）
+
+
+def _capture_qmlapp():
+    """尝试从 Qt 顶层对象中找到 qmlapp Item（含 globalConfigs 属性）。
+
+    插件导入发生在 GlobalConfigs 初始化期间，主窗口已创建，通常可成功捕获；
+    失败时返回 None（钩子仍可拉取并写缓存，仅无弹窗与热刷新）。
+    注意：用 metaObject().indexOfProperty 判断属性存在——对象型 var 属性经
+    property() 取值在不同 PySide2 版本行为不一，元对象查询最稳。
+    """
+    try:
+        from PySide2.QtGui import QGuiApplication
+
+        def _walk(obj, depth=0):
+            if obj is None or depth > 6:
+                return None
+            try:
+                if obj.metaObject().indexOfProperty("globalConfigs") >= 0:
+                    return obj
+            except Exception:
+                pass
+            for child in obj.children():
+                found = _walk(child, depth + 1)
+                if found is not None:
+                    return found
+            return None
+
+        for top in QGuiApplication.topLevelObjects():
+            found = _walk(top)
+            if found is not None:
+                return found
+    except Exception:
+        pass
+    return None
+
+
+def _install_fetch_hooks():
+    """把 aioFetchModels / aioFetchAllModels 挂载到 MissionOCR（幂等）。"""
+    global _FETCH_NOTIFIER
+    try:
+        from py_src.mission.mission_ocr import MissionOCR
+    except Exception:
+        return False
+    if getattr(MissionOCR, "_aio_fetch_hooks", False):
+        return True
+
+    # 主线程通知器：拉取在后台线程执行，弹窗/刷新经队列回到主线程
+    try:
+        from PySide2.QtCore import QObject, Slot
+
+        class _AioFetchNotifier(QObject):
+            @Slot(str, str)
+            def notify(self, title, msg):
+                try:
+                    qmlapp = _AIOCR_QMLAPP[0]
+                    if qmlapp is not None:
+                        popup = qmlapp.property("popup")
+                        if popup is not None:
+                            popup.message(title, msg, "")
+                except Exception:
+                    pass
+
+            @Slot()
+            def refreshDropdowns(self):
+                try:
+                    qmlapp = _AIOCR_QMLAPP[0]
+                    if qmlapp is None:
+                        return
+                    gc = qmlapp.property("globalConfigs")
+                    if gc is None:
+                        return
+                    from .ai_ocr_config import rebuild_model_options, globalOptions
+                    # 依据最新缓存/设置重建各平台候选列表（在线列表强制优先）
+                    rebuild_model_options()
+                    # var 属性从 Python 读出是 QJSValue；链式赋值不可用（AttributeError
+                    # 被吞掉导致刷新空转），必须 toVariant -> 改 -> setProperty 整表写回
+                    cur = gc.property("configDict")
+                    full = cur.toVariant() if hasattr(cur, "toVariant") else dict(cur or {})
+                    full["ocr"] = globalOptions
+                    gc.setProperty("configDict", full)
+                    qmlapp.property("pubSub").publish_("<<settingsReload>>", [])
+                except Exception as e:
+                    print(f"[AIOCR] 下拉菜单热刷新失败（重启后生效）: {e}")
+
+        _FETCH_NOTIFIER = _AioFetchNotifier()
+    except Exception:
+        _FETCH_NOTIFIER = None
+
+    # callPy 以 method(*args) 方式调用（实例属性函数无自动绑定），故为无参函数
+    def aioFetchModels():
+        return _aio_fetch_async(current_only=True)
+
+    def aioFetchAllModels():
+        return _aio_fetch_async(current_only=False)
+
+    MissionOCR.aioFetchModels = aioFetchModels
+    MissionOCR.aioFetchAllModels = aioFetchAllModels
+    MissionOCR._aio_fetch_hooks = True
+    return True
+
+
+# qmlapp 引用（列表包装以便模块内可变）；hooks 安装时尝试捕获
+_AIOCR_QMLAPP = [None]
+
+
+def _aio_notify_fetch(title, msg):
+    """（模块级）经主线程通知器弹窗提示；通知器不可用时退化为控制台输出。"""
+    try:
+        from PySide2.QtCore import QMetaObject, Q_ARG, Qt
+        if _FETCH_NOTIFIER is not None:
+            QMetaObject.invokeMethod(_FETCH_NOTIFIER, "notify", Qt.QueuedConnection,
+                                     Q_ARG(str, title), Q_ARG(str, msg))
+    except Exception:
+        print(f"[AIOCR] {title}: {msg}")
+
+
+def _aio_refresh_dropdowns():
+    """（模块级）重新赋值 configDict.ocr 并触发设置页重载，使下拉菜单即时更新。"""
+    try:
+        from PySide2.QtCore import QMetaObject, Qt
+        if _FETCH_NOTIFIER is not None:
+            QMetaObject.invokeMethod(_FETCH_NOTIFIER, "refreshDropdowns", Qt.QueuedConnection)
+    except Exception:
+        pass
+
+
+def _aio_fetch_async(current_only):
+    """后台线程拉取模型列表；完成后弹窗汇总并热刷新下拉菜单。"""
+    try:
+        from .model_lists import fetch_all_configured, read_saved_ui_settings, PROVIDER_LIST_RULES
+    except Exception as e:
+        print(f"[AIOCR] 模型列表模块加载失败: {e}")
+        return f"[Error] 模型列表模块加载失败: {e}"
+
+    def _worker():
+        providers = None
+        if current_only:
+            try:
+                settings = read_saved_ui_settings()
+                current = settings.get("a_provider", "")
+                if current and PROVIDER_LIST_RULES.get(current):
+                    providers = [current]
+            except Exception:
+                providers = None
+        try:
+            results = fetch_all_configured(providers=providers)
+        except Exception as e:
+            _aio_notify_fetch("拉取模型列表失败", str(e))
+            return
+        ok_lines, bad_lines = [], []
+        for p, info in results.items():
+            name = info.get("name", p)
+            if info.get("ok"):
+                ok_lines.append(f"✅ {name}: {len(info['models'])} 个模型")
+            else:
+                bad_lines.append(f"➖ {name}: {info.get('error', '失败')}")
+        summary = "\n".join(ok_lines + bad_lines) if (ok_lines or bad_lines) else "没有可拉取的平台（请先配置API密钥或自定义API地址）"
+        title = "模型列表已更新" if ok_lines else "模型列表拉取结果"
+        if bad_lines and not ok_lines:
+            _aio_notify_fetch("模型列表拉取结果", summary)
+            return
+        _aio_notify_fetch(title, summary + "\n\n下拉菜单已即时刷新；其他页面的设置稍后自动更新。")
+        _aio_refresh_dropdowns()
+
+    t = threading.Thread(target=_worker, daemon=True)
+    t.start()
+    return "[Success]"
+
+
+# 本进程内已尝试过自动补拉的服务商（每平台仅一次，避免反复打扰）
+_AUTO_FETCHED_PROVIDERS = set()
+
+
+def _auto_fetch_missing_models(provider):
+    """引擎启动后后台补拉一次该服务商的在线模型列表（尚无缓存时才拉，失败静默）。
+
+    下拉菜单默认展示"精选 + 缓存 + 已存值"；此函数让新配置的平台（如自定义 OpenAI
+    兼容反代）在首次"应用修改"后无需手动点按钮即获得在线列表。每平台每进程仅尝试一次。
+    """
+    try:
+        if not provider or provider in _AUTO_FETCHED_PROVIDERS:
+            return
+        from .model_lists import PROVIDER_LIST_RULES, load_model_list_cache, fetch_all_configured
+        if not PROVIDER_LIST_RULES.get(provider):
+            return
+        _AUTO_FETCHED_PROVIDERS.add(provider)
+        if provider in load_model_list_cache():
+            return  # 已有缓存，不打扰
+
+        def _worker():
+            try:
+                results = fetch_all_configured(providers=[provider])
+                info = results.get(provider) or {}
+                if info.get("ok"):
+                    _aio_notify_fetch(
+                        "模型列表已自动获取",
+                        f"{info.get('name', provider)}: {len(info['models'])} 个模型已加入下拉菜单。"
+                    )
+                    _aio_refresh_dropdowns()
+            except Exception:
+                pass  # 自动补拉失败静默：下拉仍可用精选/自定义，可手动点按钮重试
+
+        threading.Thread(target=_worker, daemon=True).start()
+    except Exception:
+        pass
+
+
+def _aio_startup_hooks():
+    """插件导入时的钩子装配：捕获 qmlapp + 挂载 MissionOCR 方法。"""
+    try:
+        _AIOCR_QMLAPP[0] = _capture_qmlapp()
+    except Exception:
+        _AIOCR_QMLAPP[0] = None
+    try:
+        _install_fetch_hooks()
+    except Exception:
+        pass
+
+
+_aio_startup_hooks()

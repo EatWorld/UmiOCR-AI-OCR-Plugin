@@ -2,7 +2,16 @@
 # -*- coding: utf-8 -*-
 # AI OCR Plugin Configuration
 
+import os
+
 from plugin_i18n import Translator
+
+from .model_lists import (
+    MODEL_CUSTOM_VALUE,
+    MODEL_CURATED_LISTS,
+    PROVIDER_DISPLAY_NAMES,
+    build_model_options,
+)
 
 tr = Translator(__file__, "i18n.csv")
 
@@ -82,8 +91,8 @@ PROVIDER_CONFIGS = {
         "api_base": "https://api.xiaomimimo.com/v1",
         "model": "mimo-v2.5",
     },
-    "intern": {  # 浦源书生
-        "api_base": "https://chat.intern-ai.org.cn/api/v1",
+    "intern": {  # 浦源书生（书生平台 2026-10 起启用 discovery-api 域名）
+        "api_base": "https://discovery-api.intern-ai.org.cn/v1",
         "model": "",
     },
     "kimi": {
@@ -130,6 +139,11 @@ PROVIDER_CONFIGS = {
     "opencode_zen": {
         "api_base": "https://opencode.ai/zen/v1",
         "model": "kimi-k3",  # 默认视觉模型，可在设置中修改
+    },
+    # 面壁智能（ModelBest）：文档解析模型（MiniCPM-OCR），同步/异步双模式
+    "modelbest": {
+        "api_base": "https://api.modelbest.ai",
+        "model": "MiniCPM-OCR-1.0",
     },
 }
 
@@ -219,6 +233,7 @@ globalOptions = {
             ["kimi", "Kimi (月之暗面)"],
             ["nvidia_nim", "NVIDIA NIM"],
             ["mineru", "MinerU"],
+            ["modelbest", tr("面壁智能 (ModelBest)")],
             ["paddle", "PaddleOCR (在线)"],
             ["paddle_vl_16", "PaddleOCR-VL-1.6 (在线)"],
             ["pp_structure_v3", "PP-StructureV3 (在线)"],
@@ -285,9 +300,9 @@ globalOptions = {
     },
     "doubao_model": {
         "title": tr("豆包 模型"),
-        "default": "Doubao-1.5-vision-pro-32k",
+        "default": "doubao-seed-2-0-pro",
         "type": "text",
-        "toolTip": tr("豆包模型名称，如：Doubao-1.5-vision-pro-32k"),
+        "toolTip": tr("豆包模型名称，如：doubao-seed-2-0-pro, doubao-seed-2-1-pro-260628, Doubao-1.5-vision-pro-32k"),
     },
 
     # Google Gemini配置
@@ -361,9 +376,9 @@ globalOptions = {
     },
     "siliconflow_model": {
         "title": tr("硅基流动 模型"),
-        "default": "Qwen/Qwen2.5-VL-32B-Instruct",
+        "default": "PaddlePaddle/PaddleOCR-VL-1.5",
         "type": "text",
-        "toolTip": tr("硅基流动模型名称，如：Qwen/Qwen2.5-VL-32B-Instruct, Qwen/Qwen2.5-VL-72B-Instruct"),
+        "toolTip": tr("硅基流动模型名称，如：PaddlePaddle/PaddleOCR-VL-1.5（免费）、Qwen/Qwen3-VL-32B-Instruct、Qwen/Qwen3.5-122B-A10B（Qwen2.5-VL 系列与 Qwen3-VL-235B 已于 2026-04 下线）"),
     },
 
     # xAI配置
@@ -540,18 +555,25 @@ globalOptions = {
         "type": "text",
         "toolTip": tr("小米MiMo平台的API地址。默认：https://api.xiaomimimo.com/v1 ；如购买了Code套餐，请使用专属地址：https://token-plan-cn.xiaomimimo.com/v1"),
     },
-    # 浦源书生配置
+    # 浦源书生配置（书生平台 2026-10 起启用 discovery-api 新域名）
     "intern_api_key": {
         "title": tr("浦源书生 API密钥"),
         "default": "",
         "type": "text",
-        "toolTip": tr("请输入浦源书生的API密钥"),
+        "toolTip": tr("请输入浦源书生的API密钥。注意：生成模型限速 50 次/分钟、决策模型 200 次/分钟（所有 API Key 共享额度），建议在高级设置中将\"每分钟最大请求数\"设为 40 左右"),
     },
     "intern_model": {
         "title": tr("浦源书生 模型"),
-        "default": "internvl3.5-241b-a28b",
+        "default": "intern-latest",
         "type": "text",
-        "toolTip": tr("浦源书生多模态模型，如：internvl3.5-241b-a28b"),
+        "toolTip": tr("浦源书生多模态模型，如：intern-latest、intern-s2-preview、intern-s1-pro、internvl3.5-241b-a28b"),
+    },
+    "intern_api_base": {
+        "title": tr("浦源书生 API地址"),
+        "default": "https://discovery-api.intern-ai.org.cn/v1",
+        "type": "text",
+        "toolTip": tr("书生平台API地址，默认：https://discovery-api.intern-ai.org.cn/v1（2026年10月起启用的新域名；旧地址 chat.intern-ai.org.cn/api/v1 已停用）"),
+        "advanced": True,
     },
     # Kimi (月之暗面) 配置
     "kimi_api_key": {
@@ -719,6 +741,27 @@ globalOptions = {
         "advanced": True,
     },
 
+    # 面壁智能（ModelBest）文档解析配置
+    "modelbest_api_key": {
+        "title": tr("面壁智能 API密钥"),
+        "default": "",
+        "type": "text",
+        "toolTip": tr("请输入面壁智能（ModelBest）的 MAP API Key（登录 https://platform.modelbest.ai → 控制台 → API Keys 获取）"),
+    },
+    "modelbest_model": {
+        "title": tr("面壁智能 模型"),
+        "default": "MiniCPM-OCR-1.0",
+        "type": "text",
+        "toolTip": tr('面壁智能文档解析模型，默认 MiniCPM-OCR-1.0。可从下拉菜单选择（可通过"获取模型列表"按钮在线更新）；选择"自定义（手动输入）"后可在高级设置中填写任意模型名。'),
+    },
+    "modelbest_api_base": {
+        "title": tr("面壁智能 API地址"),
+        "default": "https://api.modelbest.ai",
+        "type": "text",
+        "toolTip": tr("面壁智能开放平台API基础地址，默认：https://api.modelbest.ai （文档解析请求发送到 {地址}/v1/document-parse）"),
+        "advanced": True,
+    },
+
     # PaddleOCR 在线配置（异步解析模式）
     "paddle_api_key": {
         "title": tr("PaddleOCR Token"),
@@ -846,6 +889,7 @@ localOptions = {
             ["kimi", "Kimi (月之暗面)"],
             ["nvidia_nim", "NVIDIA NIM"],
             ["mineru", "MinerU"],
+            ["modelbest", tr("面壁智能 (ModelBest)")],
             ["paddle", "PaddleOCR (在线)"],
             ["paddle_vl_16", "PaddleOCR-VL-1.6 (在线)"],
             ["pp_structure_v3", "PP-StructureV3 (在线)"],
@@ -1051,4 +1095,117 @@ localOptions = {
         "default": False,
         "toolTip": tr("【仅VL-1.6】启用表格合并功能，合并跨页或分割的表格。"),
     },
+}
+
+
+# ============================================================
+# =============== 模型下拉菜单与在线列表获取 ===============
+# ============================================================
+# 全局设置中各平台的"模型"字段由手填文本框升级为下拉菜单：
+#   候选 = 内置精选列表 + 在线拉取缓存(model_lists_cache.json) + 已保存的当前值 + "自定义"
+# - 已保存的旧值（含历史手填的自定义模型）会合并进候选列表，升级后不会被枚举校验重置；
+# - 选择"自定义（手动输入）"时，实际调用改用下方自动生成的"{平台} 自定义模型"手填框，
+#   与旧版纯手填行为完全兼容（本地模型、未收录模型、中转站模型均可手填）；
+# - 可通过"获取模型列表"按钮（或"刷新模型列表.bat"脚本）在线更新候选列表。
+
+# 检测 Umi-OCR 核心是否支持"按钮 onClicked 为字符串 → callPy"分发
+# （Configs.qml compBtns 中的字符串分支；原版核心仅有函数分支）。
+def _detect_btn_call_support():
+    try:
+        qml_path = os.path.normpath(os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "..", "..", "qt_res", "qml", "Configs", "Configs.qml",
+        ))
+        if os.path.isfile(qml_path):
+            with open(qml_path, "r", encoding="utf-8", errors="replace") as f:
+                return 'callPy("ocr"' in f.read() or "callPy('ocr'" in f.read()
+    except Exception:
+        pass
+    return False
+
+
+def _check_fetch_hooks_installed():
+    """检测 ai_ocr.py 是否已成功把 aioFetchModels 挂载到 MissionOCR。"""
+    try:
+        from py_src.mission.mission_ocr import MissionOCR
+        return getattr(MissionOCR, "_aio_fetch_hooks", False)
+    except Exception:
+        return False
+
+
+CORE_SUPPORTS_BTN_CALL = _detect_btn_call_support() and _check_fetch_hooks_installed()
+
+# 已追加过"自定义手填指引"的服务商（rebuild_model_options 可重入，防重复追加）
+_HINT_APPENDED_PROVIDERS = set()
+
+
+def rebuild_model_options():
+    """(重)构建各平台模型下拉候选，并补 {provider}_model_custom 手填框。
+
+    候选策略（见 model_lists.build_model_options）：**在线列表强制优先**——已成功
+    拉取过在线列表的平台仅用"在线列表 + 已存值 + 自定义"；未拉取过的平台以内置
+    精选列表作引导。本函数可重复调用：在线拉取成功后由 ai_ocr.py 的刷新钩子再次
+    执行，使下拉菜单即时反映最新平台列表（无需重启）。
+    """
+    from .model_lists import read_saved_ui_settings, load_model_list_cache
+    saved_settings = read_saved_ui_settings()
+    cache = load_model_list_cache()
+    for provider in MODEL_CURATED_LISTS:
+        key = f"{provider}_model"
+        item = globalOptions.get(key)
+        if not isinstance(item, dict) or "title" not in item:
+            continue  # paddle 系列等未导出模型项的平台保持原样
+        old_default = item.get("default", "")
+        # 显式 type:"text" 会阻止 QML 将 optionsList 推断为枚举，必须移除
+        item.pop("type", None)
+        item["optionsList"] = build_model_options(
+            provider, default_model=old_default, saved_settings=saved_settings, cache=cache
+        )
+        # 旧默认值可能为空或不在候选内（如 custom_openai/llamacpp/默认值被在线列表替换），避免枚举校验重置
+        option_keys = [o[0] for o in item["optionsList"]]
+        if item.get("default", "") not in option_keys:
+            item["default"] = option_keys[0]
+        # 平台显示名（悬停指引与自定义框标题共用）
+        name = PROVIDER_DISPLAY_NAMES.get(provider, provider)
+        # 在下拉框悬停提示中追加自定义模型填写指引（自定义输入框默认随"高级"隐藏，需显式指路）
+        # 仅追加一次（用进程内标记而非文本匹配——tr 译文随语言变化，文本匹配会在
+        # 非中文语言下失效导致每次刷新重复追加）：本函数会被热刷新反复调用
+        if provider not in _HINT_APPENDED_PROVIDERS:
+            _HINT_APPENDED_PROVIDERS.add(provider)
+            item["toolTip"] = (item.get("toolTip") or "") + tr(
+                '【自定义模型】如需手填：先在上方下拉菜单选择"自定义（手动输入）"，然后开启页面右上角的「高级」开关，在下方带 * 号的"{0} 自定义模型"框中输入模型名（需支持图像输入；留空则回退默认模型）。'
+            ).format(name)
+        # 追加"自定义"手填框（QVariantMap 按键名字母序渲染，自动紧跟在 model 字段之后）
+        globalOptions[f"{provider}_model_custom"] = {
+            "title": tr("{0} 自定义模型").format(name),
+            "default": old_default or "",
+            "type": "text",
+            "toolTip": tr('当"{0} 模型"选择"自定义（手动输入）"时生效。直接填写任意模型名（需支持图像输入），与旧版手填行为一致。').format(name),
+            "advanced": True,
+        }
+
+
+rebuild_model_options()
+
+# "获取模型列表"按钮：仅在核心 QML 支持字符串分发且钩子挂载成功时渲染
+if CORE_SUPPORTS_BTN_CALL:
+    globalOptions["a_fetch_models_btns"] = {
+        "title": tr("获取模型列表"),
+        "btnsList": [
+            {"text": tr("🔄 拉取当前服务商"), "onClicked": "aioFetchModels", "textColorKey": "yesColor"},
+            {"text": tr("🔄 拉取全部已配置平台"), "onClicked": "aioFetchAllModels", "textColorKey": "noColor"},
+        ],
+        "toolTip": tr("通过各平台API在线获取模型列表并更新上方下拉菜单。未配置API密钥的平台自动跳过；本地服务（Ollama等）需处于运行状态。结果缓存于插件目录 model_lists_cache.json，重启 Umi-OCR 后同样生效。"),
+    }
+
+# 面壁智能（ModelBest）局部配置项
+localOptions["modelbest_upright"] = {
+    "title": tr("文档自适应旋转"),
+    "default": True,
+    "toolTip": tr("【仅面壁智能】开启后自动旋转倾斜/倒置的文档图片再识别。注意：旋转后返回的坐标以矫正后页面为基准，如需精确坐标建议关闭。"),
+}
+localOptions["modelbest_recognize_seal"] = {
+    "title": tr("印章内容识别"),
+    "default": True,
+    "toolTip": tr("【仅面壁智能】识别文档中的印章并输出其文字内容。关闭时印章区域保留布局但内容为空。"),
 }

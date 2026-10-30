@@ -1444,6 +1444,71 @@ class PPStructureV3Provider(BaseProvider):
             raise Exception(f"解析PP-StructureV3响应失败: {str(e)}")
 
 
+# 面壁智能（ModelBest）文档解析 Provider
+# 文档: https://platform.modelbest.ai/console/docs/models/document-parse
+# 同步: POST {base}/v1/document-parse（单张图片，JSON image=base64/dataURI）
+# 异步: POST {base}/v1/document-parse/jobs（multipart，支持大图/PDF）→ 轮询 GET .../jobs/{id}
+# 响应: choices[0].message.content = 页面 Markdown（HTML表格/LaTeX公式）
+#       ocr.blocks[] = {order, label, bbox[x1,y1,x2,y2], content, status} 真实坐标块
+# 鉴权: Authorization: Bearer <MAP API Key>（platform.modelbest.ai → API Keys 获取）
+class ModelbestProvider(BaseProvider):
+    """面壁智能（ModelBest）文档解析服务提供商 - MiniCPM-OCR 同步/异步模式"""
+
+    # 同步请求 JSON 体积上限 32MiB，base64 膨胀约 1.37 倍，原始图片超过 20MiB 时直接走异步
+    ASYNC_IMAGE_THRESHOLD = 20 * 1024 * 1024
+
+    def get_default_api_base(self):
+        return "https://api.modelbest.ai"
+
+    def get_default_model(self):
+        return "MiniCPM-OCR-1.0"
+
+    def build_headers(self):
+        return {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {self.api_key}",
+        }
+
+    def build_payload(self, image_base64, prompt):
+        return {}
+
+    def parse_response(self, response_text):
+        """解析为 {"__modelbest__": page_dict}（与其他 Provider 返回纯文本不同）。
+
+        page_dict 为归一化后的单页结果（同步响应或异步 job 的 pages[] 项），
+        由 Api._convert_to_umi_format 按输出格式（纯文本/坐标/Markdown）分别消费，
+        全程不落实例状态，天然线程安全（多图并发识别）。
+        """
+        page = self._extract_page(response_text)
+        if not page:
+            return {}
+        return {"__modelbest__": page}
+
+    def _extract_page(self, response_text):
+        """从同步响应或异步 job 响应中提取第一个有效页面。"""
+        try:
+            data = json.loads(response_text)
+        except Exception as e:
+            raise Exception(f"解析面壁智能响应失败: {str(e)}")
+        err = data.get("error") if isinstance(data, dict) else None
+        if err:
+            msg = err.get("message") if isinstance(err, dict) else str(err)
+            raise Exception(f"面壁智能 API错误: {msg}")
+        # 异步 job 响应：{status, pages: [...], markdown, error}
+        if isinstance(data, dict) and isinstance(data.get("pages"), list):
+            for p in data["pages"]:
+                if isinstance(p, dict) and p.get("ocr"):
+                    return p
+            md = data.get("markdown")
+            if isinstance(md, str) and md.strip():
+                return {"choices": [{"message": {"content": md}}]}
+            raise Exception(f"面壁智能任务无有效页面结果 (status={data.get('status')})")
+        # 同步单页响应：{choices, ocr, metadata}
+        if isinstance(data, dict) and (data.get("choices") or data.get("ocr")):
+            return data
+        raise Exception(f"面壁智能响应格式异常: {response_text[:300]}")
+
+
 # Longcat AI Provider
 class LongcatProvider(BaseProvider):
     """Longcat AI服务提供商 - OpenAI兼容API"""
@@ -1713,6 +1778,7 @@ class ProviderFactory:
             "xflyun": XFlyunProvider,  # 新增：讯飞星辰 MaaS Provider
             "opencode_go": OpenAIProvider,  # OpenCode Go（OpenAI兼容网关）
             "opencode_zen": OpenAIProvider,  # OpenCode Zen（OpenAI兼容网关）
+            "modelbest": ModelbestProvider,  # 面壁智能（ModelBest）文档解析
             "llamacpp": LlamaCppProvider,
 
         }
@@ -2144,12 +2210,22 @@ class Api:
             # 根据选择的服务商获取对应的API密钥和模型
             api_key = self.global_config.get(f"{provider_name}_api_key", "")
             model = self.global_config.get(f"{provider_name}_model", "")
-            
+
+            # 模型下拉菜单：选择"自定义"时改用 {provider}_model_custom 手填值。
+            # 旧版配置（模型为手填字符串）原样透传，完全向后兼容。
+            if isinstance(model, str) and model.strip() == "__custom__":
+                model = self.global_config.get(f"{provider_name}_model_custom", "")
+                if not model:
+                    from .ai_ocr_config import get_provider_default_model
+                    model = get_provider_default_model(provider_name)
+            if isinstance(model, str):
+                model = model.strip()
+
             # 获取自定义 API 地址（如果有的话）
             api_base = self.global_config.get(f"{provider_name}_api_base", "")
-            
+
             # PaddleOCR系列：旧版model字段存的是API URL，需跳过并使用默认模型名
-            if provider_name in ("paddle", "paddle_vl_16", "pp_structure_v3"):
+            if provider_name in ("paddle", "paddle_vl_16", "pp_structure_v3", "modelbest"):
                 if isinstance(model, str) and (model.startswith("http://") or model.startswith("https://") or model.startswith("/")):
                     model = ""
             
@@ -2157,12 +2233,12 @@ class Api:
             timeout = self.global_config.get("a_timeout", self.global_config.get("timeout", 30))
             proxy_url = self.global_config.get("z_proxy_url", self.global_config.get("proxy_url", ""))
             
-            # 对于本地服务（Ollama、LM Studio），API密钥可以为空
-            if not api_key and provider_name not in ["ollama", "lmstudio"]:
+            # 对于本地服务（Ollama、LM Studio、llama.cpp），API密钥可以为空
+            if not api_key and provider_name not in ["ollama", "lmstudio", "llamacpp"]:
                 return f"[Error] {provider_name} 的API密钥不能为空，请在设置中配置"
-            
+
             if not model:
-                if provider_name in ("paddle", "paddle_vl_16", "pp_structure_v3"):
+                if provider_name in ("paddle", "paddle_vl_16", "pp_structure_v3", "modelbest"):
                     from .ai_ocr_config import get_provider_default_model
                     model = get_provider_default_model(provider_name)
                 if not model:
@@ -2198,7 +2274,13 @@ class Api:
             
             # 创建线程池
             self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=max_workers)
-            
+
+            # 首次使用某平台时后台补拉一次在线模型列表（有缓存则跳过，失败静默）
+            try:
+                _auto_fetch_missing_models(provider_name)
+            except Exception:
+                pass
+
             return ""
         except Exception as e:
             return f"[Error] 启动失败: {str(e)}"
@@ -2886,10 +2968,14 @@ class Api:
                 output_format = local.get('output_format', 'text_only')
                 self._current_output_format = output_format
                 provider_name = self.global_config.get("a_provider", self.global_config.get("provider", "openai"))
-                # markdown格式：PaddleOCR-VL/StructureV3原生支持markdown，直接调用API获取
-                if output_format == 'markdown' and provider_name in ('paddle_vl_16', 'pp_structure_v3'):
+                # markdown格式：PaddleOCR-VL/StructureV3/面壁智能原生支持markdown，直接调用API获取
+                if output_format == 'markdown' and provider_name in ('paddle_vl_16', 'pp_structure_v3', 'modelbest'):
                     processed_base64 = self._preprocess_image(imageBase64)
                     result = self._run_ocr(processed_base64, {"output_format": "markdown", "language": local.get("language", "auto")})
+                # 面壁智能：文档解析模型自带真实坐标块，无需本地检测+裁剪，整图直出坐标
+                elif provider_name == 'modelbest' and strategy in ('ai_high_precision_with_coordinates', 'paddle_first_correction'):
+                    processed_base64 = self._preprocess_image(imageBase64)
+                    result = self._run_ocr(processed_base64, {"output_format": "with_coordinates", "language": local.get("language", "auto")})
                 # 含位置版：Paddle检测框 + AI纠错文本
                 elif strategy in ('ai_high_precision_with_coordinates', 'paddle_first_correction'):
                     result = self._run_paddle_first_correction(imageBase64)
@@ -3067,6 +3153,8 @@ class Api:
             return self._send_paddle_async_request(image_base64)
         if provider_name == "nvidia_nim":
             return self._send_nvidia_nim_request(image_base64, prompt)
+        if provider_name == "modelbest":
+            return self._send_modelbest_request(image_base64)
         # 构建请求URL
         api_base = self.provider.api_base or self.provider.get_default_api_base()
         provider_name = self.global_config.get("a_provider", self.global_config.get("provider", "openai"))
@@ -3390,6 +3478,197 @@ class Api:
                 layout_res = r.get("layoutParsingResults", [])
                 sync_result["result"]["layoutParsingResults"].extend(layout_res)
             return json.dumps(sync_result, ensure_ascii=False)
+
+    def _send_modelbest_request(self, image_base64):
+        """面壁智能文档解析：同步优先（单图直出），大图自动转异步任务。
+
+        同步：POST {base}/v1/document-parse（JSON body ≤32MiB，原始图 ≤24MiB）
+        异步：POST {base}/v1/document-parse/jobs（multipart）→ 轮询 GET .../jobs/{id}
+        """
+        api_base = (self.provider.api_base or self.provider.get_default_api_base()).rstrip("/")
+        model_name = self.provider.model or self.provider.get_default_model()
+        local_cfg = getattr(self, "local_config", {}) or {}
+        upright = bool(local_cfg.get("modelbest_upright", True))
+        seal = bool(local_cfg.get("modelbest_recognize_seal", True))
+
+        raw_b64 = image_base64
+        if isinstance(raw_b64, str) and raw_b64.startswith("data:image"):
+            raw_b64 = raw_b64.split(",", 1)[-1]
+        image_bytes = base64.b64decode(raw_b64, validate=False)
+
+        # 原始图超过阈值（base64 后逼近 32MiB JSON 上限）时直接走异步
+        threshold = getattr(self.provider, "ASYNC_IMAGE_THRESHOLD", 20 * 1024 * 1024)
+        if len(image_bytes) <= threshold:
+            headers = self.provider.build_headers()
+            payload = {
+                "model": model_name,
+                "image": raw_b64,
+                "upright": upright,
+                "recognize_seal": seal,
+            }
+            resp = self.http_client.post(f"{api_base}/v1/document-parse", headers, json.dumps(payload))
+            if resp["status_code"] == 200:
+                return resp["text"]
+            # 体积/格式导致的 400/413 回退异步重试一次；其余错误直接报出
+            if resp["status_code"] not in (400, 413):
+                raise Exception(f"面壁智能 API请求失败 (状态码: {resp['status_code']}): {resp['text'][:500]}")
+        return self._modelbest_async_request(image_bytes, model_name, upright, seal, api_base)
+
+    def _modelbest_async_request(self, image_bytes, model_name, upright, seal, api_base):
+        """面壁智能异步任务：multipart 提交 → 轮询至终态 → 返回 job JSON 文本。"""
+        headers = {"Authorization": f"Bearer {self.provider.api_key}"}
+        files = {
+            "file": {
+                "filename": "image.jpg",
+                "content": image_bytes,
+                "content_type": "image/jpeg",
+            }
+        }
+        data = {
+            "model": model_name,
+            "upright": "true" if upright else "false",
+            "recognize_seal": "true" if seal else "false",
+        }
+        submit_resp = self.http_client.post_multipart(
+            f"{api_base}/v1/document-parse/jobs", headers=headers, files=files, data=data
+        )
+        if submit_resp["status_code"] not in (200, 202):
+            raise Exception(f"面壁智能提交任务失败 (状态码: {submit_resp['status_code']}): {submit_resp['text'][:500]}")
+        try:
+            submit_data = json.loads(submit_resp["text"])
+        except Exception:
+            raise Exception(f"面壁智能任务响应解析失败: {submit_resp['text'][:300]}")
+        job_id = submit_data.get("id")
+        if not job_id:
+            raise Exception(f"面壁智能未返回任务ID: {submit_resp['text'][:300]}")
+
+        timeout = getattr(self.http_client, "timeout", 30)
+        max_wait = max(90, timeout * 4)
+        poll_url = f"{api_base}/v1/document-parse/jobs/{job_id}"
+        poll_headers = {
+            "Authorization": f"Bearer {self.provider.api_key}",
+            "Content-Type": "application/json",
+        }
+        intervals = [1.0, 1.5, 2.0]
+        start_ts = time.time()
+        poll_count = 0
+        while time.time() - start_ts < max_wait:
+            idx = min(poll_count, len(intervals) - 1)
+            try:
+                poll_resp = self.http_client.get(poll_url, headers=poll_headers)
+            except Exception:
+                time.sleep(intervals[idx])
+                poll_count += 1
+                continue
+            if poll_resp.get("status_code") != 200:
+                time.sleep(intervals[idx])
+                poll_count += 1
+                continue
+            try:
+                poll_data = json.loads(poll_resp.get("text", ""))
+            except Exception:
+                time.sleep(intervals[idx])
+                poll_count += 1
+                continue
+            status = poll_data.get("status", "")
+            if status == "Success":
+                return poll_resp["text"]
+            if status in ("Failed", "Cancelled"):
+                err = poll_data.get("error") or status
+                if isinstance(err, dict):
+                    err = err.get("message") or json.dumps(err, ensure_ascii=False)
+                label = "解析失败" if status == "Failed" else "已取消"
+                raise Exception(f"面壁智能任务{label}: {err}")
+            time.sleep(intervals[idx])
+            poll_count += 1
+        raise Exception(f"面壁智能异步解析超时（{max_wait}s）")
+
+    def _convert_modelbest_page(self, page, output_format):
+        """面壁智能：归一化页面 → Umi 结果。
+
+        - markdown：整页 Markdown 单块输出
+        - text_only / with_coordinates：直接使用文档解析返回的真实坐标块
+          （ocr.blocks[].bbox 为 [x1,y1,x2,y2]，坐标系为 ocr.image_width/height）
+        """
+        if output_format == "markdown":
+            content = ""
+            try:
+                content = page.get("choices", [{}])[0].get("message", {}).get("content") or ""
+            except Exception:
+                content = ""
+            if not content and isinstance(page.get("markdown"), str):
+                content = page["markdown"]
+            content = remove_image_tags(content)
+            if not content.strip():
+                return self._create_empty_result()
+            return self._parse_markdown(content)
+        return self._parse_modelbest_blocks(page)
+
+    def _parse_modelbest_blocks(self, page):
+        """面壁智能：解析真实坐标块。按阅读顺序输出，跳过 failed/skipped 块。"""
+        ocr = page.get("ocr") or {}
+        blocks = [b for b in (ocr.get("blocks") or []) if isinstance(b, dict)]
+        # 结果坐标基于 ocr.image_width/height；若与服务端缩放/旋转后的尺寸不一致，
+        # 先线性归一到发送图（processed）坐标系，再统一映射回原图
+        ow = float(ocr.get("image_width") or 0)
+        oh = float(ocr.get("image_height") or 0)
+        proc = self.processed_size or self.original_size
+        sx = sy = 1.0
+        if proc and ow > 0 and oh > 0 and (abs(proc[0] - ow) > 1 or abs(proc[1] - oh) > 1):
+            sx = proc[0] / ow
+            sy = proc[1] / oh
+
+        def _order_key(b):
+            o = b.get("order")
+            return o if isinstance(o, (int, float)) else 10 ** 9
+
+        items = []
+        for b in sorted(blocks, key=_order_key):
+            if b.get("status") not in (None, "", "ok"):
+                continue  # failed / skipped_no_vlm / skipped_seal
+            text = str(b.get("content") or "").strip()
+            if not text:
+                continue
+            bbox = b.get("bbox")
+            if not (isinstance(bbox, (list, tuple)) and len(bbox) == 4):
+                regions = b.get("regions")
+                if isinstance(regions, list) and regions and isinstance(regions[0], (list, tuple)) and len(regions[0]) == 4:
+                    bbox = regions[0]
+                else:
+                    continue
+            try:
+                x1, y1, x2, y2 = [float(v) for v in bbox]
+            except Exception:
+                continue
+            box = [
+                [x1 * sx, y1 * sy],
+                [x2 * sx, y1 * sy],
+                [x2 * sx, y2 * sy],
+                [x1 * sx, y2 * sy],
+            ]
+            items.append({
+                "text": text,
+                "box": self._map_coordinates_to_original(box),
+                "score": 1.0,
+            })
+        if not items:
+            return self._create_empty_result()
+        return {"code": 100, "data": items}
+
+    def fetch_provider_models(self, provider=None):
+        """拉取平台在线模型列表（供按钮钩子与脚本复用）。
+
+        provider 为空时拉取当前选中的服务商；返回 {provider: {...结果...}}。
+        """
+        try:
+            from .model_lists import fetch_all_configured, read_saved_ui_settings
+        except Exception as e:
+            raise Exception(f"模型列表模块加载失败: {e}")
+        settings = read_saved_ui_settings()
+        if provider is None:
+            provider = self.global_config.get("a_provider", self.global_config.get("provider"))
+        providers = [provider] if provider else None
+        return fetch_all_configured(providers=providers, settings=settings)
 
     def _send_nvidia_nim_request(self, image_base64, prompt):
         """NVIDIA NIM请求：支持200直接返回和202异步轮询两种模式
@@ -3759,6 +4038,10 @@ class Api:
         """转换为Umi格式"""
         output_format = config.get("output_format", "text_only")
         provider_name = self.global_config.get("a_provider", self.global_config.get("provider", "openai"))
+
+        # 面壁智能：文档解析返回归一化页面字典，按输出格式分别消费
+        if provider_name == "modelbest" and isinstance(content, dict) and "__modelbest__" in content:
+            return self._convert_modelbest_page(content["__modelbest__"], output_format)
 
         if provider_name == "mineru":
             return self._parse_text_only(content)
@@ -4137,3 +4420,236 @@ class Api:
 
         return result
 
+
+
+# ============================================================
+# =============== 模型列表拉取钩子（按钮联动） ===============
+# ============================================================
+# 全局设置中的"拉取模型列表"按钮通过 QML callPy("ocr", "aioFetchModels") 触发，
+# 该调用落到 Umi-OCR 核心的 MissionOCR 对象上。插件在导入时把拉取方法挂载到
+# MissionOCR（猴子补丁），从而无需改动 Umi-OCR 核心代码。
+# 注意：按钮文案点击后调用字符串形式的 onClicked 需要 Umi-OCR 的 Configs.qml
+# 支持字符串分发（安装检测见 ai_ocr_config.CORE_SUPPORTS_BTN_CALL），不支持时
+# 按钮不渲染，用户可通过"刷新模型列表.bat"脚本离线拉取（重启后生效）。
+
+_FETCH_NOTIFIER = None  # 主线程通知器（弹窗 + 下拉菜单热刷新）
+
+
+def _capture_qmlapp():
+    """尝试从 Qt 顶层对象中找到 qmlapp Item（含 globalConfigs 属性）。
+
+    插件导入发生在 GlobalConfigs 初始化期间，主窗口已创建，通常可成功捕获；
+    失败时返回 None（钩子仍可拉取并写缓存，仅无弹窗与热刷新）。
+    注意：用 metaObject().indexOfProperty 判断属性存在——对象型 var 属性经
+    property() 取值在不同 PySide2 版本行为不一，元对象查询最稳。
+    """
+    try:
+        from PySide2.QtGui import QGuiApplication
+
+        def _walk(obj, depth=0):
+            if obj is None or depth > 6:
+                return None
+            try:
+                if obj.metaObject().indexOfProperty("globalConfigs") >= 0:
+                    return obj
+            except Exception:
+                pass
+            for child in obj.children():
+                found = _walk(child, depth + 1)
+                if found is not None:
+                    return found
+            return None
+
+        for top in QGuiApplication.topLevelObjects():
+            found = _walk(top)
+            if found is not None:
+                return found
+    except Exception:
+        pass
+    return None
+
+
+def _install_fetch_hooks():
+    """把 aioFetchModels / aioFetchAllModels 挂载到 MissionOCR（幂等）。"""
+    global _FETCH_NOTIFIER
+    try:
+        from py_src.mission.mission_ocr import MissionOCR
+    except Exception:
+        return False
+    if getattr(MissionOCR, "_aio_fetch_hooks", False):
+        return True
+
+    # 主线程通知器：拉取在后台线程执行，弹窗/刷新经队列回到主线程
+    try:
+        from PySide2.QtCore import QObject, Slot
+
+        class _AioFetchNotifier(QObject):
+            @Slot(str, str)
+            def notify(self, title, msg):
+                try:
+                    qmlapp = _AIOCR_QMLAPP[0]
+                    if qmlapp is not None:
+                        popup = qmlapp.property("popup")
+                        if popup is not None:
+                            popup.message(title, msg, "")
+                except Exception:
+                    pass
+
+            @Slot()
+            def refreshDropdowns(self):
+                try:
+                    qmlapp = _AIOCR_QMLAPP[0]
+                    if qmlapp is None:
+                        return
+                    gc = qmlapp.property("globalConfigs")
+                    if gc is None:
+                        return
+                    from .ai_ocr_config import rebuild_model_options, globalOptions
+                    # 依据最新缓存/设置重建各平台候选列表（在线列表强制优先）
+                    rebuild_model_options()
+                    # var 属性从 Python 读出是 QJSValue；链式赋值不可用（AttributeError
+                    # 被吞掉导致刷新空转），必须 toVariant -> 改 -> setProperty 整表写回
+                    cur = gc.property("configDict")
+                    full = cur.toVariant() if hasattr(cur, "toVariant") else dict(cur or {})
+                    full["ocr"] = globalOptions
+                    gc.setProperty("configDict", full)
+                    qmlapp.property("pubSub").publish_("<<settingsReload>>", [])
+                except Exception as e:
+                    print(f"[AIOCR] 下拉菜单热刷新失败（重启后生效）: {e}")
+
+        _FETCH_NOTIFIER = _AioFetchNotifier()
+    except Exception:
+        _FETCH_NOTIFIER = None
+
+    # callPy 以 method(*args) 方式调用（实例属性函数无自动绑定），故为无参函数
+    def aioFetchModels():
+        return _aio_fetch_async(current_only=True)
+
+    def aioFetchAllModels():
+        return _aio_fetch_async(current_only=False)
+
+    MissionOCR.aioFetchModels = aioFetchModels
+    MissionOCR.aioFetchAllModels = aioFetchAllModels
+    MissionOCR._aio_fetch_hooks = True
+    return True
+
+
+# qmlapp 引用（列表包装以便模块内可变）；hooks 安装时尝试捕获
+_AIOCR_QMLAPP = [None]
+
+
+def _aio_notify_fetch(title, msg):
+    """（模块级）经主线程通知器弹窗提示；通知器不可用时退化为控制台输出。"""
+    try:
+        from PySide2.QtCore import QMetaObject, Q_ARG, Qt
+        if _FETCH_NOTIFIER is not None:
+            QMetaObject.invokeMethod(_FETCH_NOTIFIER, "notify", Qt.QueuedConnection,
+                                     Q_ARG(str, title), Q_ARG(str, msg))
+    except Exception:
+        print(f"[AIOCR] {title}: {msg}")
+
+
+def _aio_refresh_dropdowns():
+    """（模块级）重新赋值 configDict.ocr 并触发设置页重载，使下拉菜单即时更新。"""
+    try:
+        from PySide2.QtCore import QMetaObject, Qt
+        if _FETCH_NOTIFIER is not None:
+            QMetaObject.invokeMethod(_FETCH_NOTIFIER, "refreshDropdowns", Qt.QueuedConnection)
+    except Exception:
+        pass
+
+
+def _aio_fetch_async(current_only):
+    """后台线程拉取模型列表；完成后弹窗汇总并热刷新下拉菜单。"""
+    try:
+        from .model_lists import fetch_all_configured, read_saved_ui_settings, PROVIDER_LIST_RULES
+    except Exception as e:
+        print(f"[AIOCR] 模型列表模块加载失败: {e}")
+        return f"[Error] 模型列表模块加载失败: {e}"
+
+    def _worker():
+        providers = None
+        if current_only:
+            try:
+                settings = read_saved_ui_settings()
+                current = settings.get("a_provider", "")
+                if current and PROVIDER_LIST_RULES.get(current):
+                    providers = [current]
+            except Exception:
+                providers = None
+        try:
+            results = fetch_all_configured(providers=providers)
+        except Exception as e:
+            _aio_notify_fetch("拉取模型列表失败", str(e))
+            return
+        ok_lines, bad_lines = [], []
+        for p, info in results.items():
+            name = info.get("name", p)
+            if info.get("ok"):
+                ok_lines.append(f"✅ {name}: {len(info['models'])} 个模型")
+            else:
+                bad_lines.append(f"➖ {name}: {info.get('error', '失败')}")
+        summary = "\n".join(ok_lines + bad_lines) if (ok_lines or bad_lines) else "没有可拉取的平台（请先配置API密钥或自定义API地址）"
+        title = "模型列表已更新" if ok_lines else "模型列表拉取结果"
+        if bad_lines and not ok_lines:
+            _aio_notify_fetch("模型列表拉取结果", summary)
+            return
+        _aio_notify_fetch(title, summary + "\n\n下拉菜单已即时刷新；其他页面的设置稍后自动更新。")
+        _aio_refresh_dropdowns()
+
+    t = threading.Thread(target=_worker, daemon=True)
+    t.start()
+    return "[Success]"
+
+
+# 本进程内已尝试过自动补拉的服务商（每平台仅一次，避免反复打扰）
+_AUTO_FETCHED_PROVIDERS = set()
+
+
+def _auto_fetch_missing_models(provider):
+    """引擎启动后后台补拉一次该服务商的在线模型列表（尚无缓存时才拉，失败静默）。
+
+    下拉菜单默认展示"精选 + 缓存 + 已存值"；此函数让新配置的平台（如自定义 OpenAI
+    兼容反代）在首次"应用修改"后无需手动点按钮即获得在线列表。每平台每进程仅尝试一次。
+    """
+    try:
+        if not provider or provider in _AUTO_FETCHED_PROVIDERS:
+            return
+        from .model_lists import PROVIDER_LIST_RULES, load_model_list_cache, fetch_all_configured
+        if not PROVIDER_LIST_RULES.get(provider):
+            return
+        _AUTO_FETCHED_PROVIDERS.add(provider)
+        if provider in load_model_list_cache():
+            return  # 已有缓存，不打扰
+
+        def _worker():
+            try:
+                results = fetch_all_configured(providers=[provider])
+                info = results.get(provider) or {}
+                if info.get("ok"):
+                    _aio_notify_fetch(
+                        "模型列表已自动获取",
+                        f"{info.get('name', provider)}: {len(info['models'])} 个模型已加入下拉菜单。"
+                    )
+                    _aio_refresh_dropdowns()
+            except Exception:
+                pass  # 自动补拉失败静默：下拉仍可用精选/自定义，可手动点按钮重试
+
+        threading.Thread(target=_worker, daemon=True).start()
+    except Exception:
+        pass
+
+
+def _aio_startup_hooks():
+    """插件导入时的钩子装配：捕获 qmlapp + 挂载 MissionOCR 方法。"""
+    try:
+        _AIOCR_QMLAPP[0] = _capture_qmlapp()
+    except Exception:
+        _AIOCR_QMLAPP[0] = None
+    try:
+        _install_fetch_hooks()
+    except Exception:
+        pass
+
+
+_aio_startup_hooks()
