@@ -30,3 +30,7 @@ model_lists_cache.json
 
 # 工具本地数据
 .workbuddy/
+
+# 维护日志仅本地保留，不入库
+UmiOCR AI OCR 项目历程*.md
+**/UmiOCR AI OCR 项目历程*.md
